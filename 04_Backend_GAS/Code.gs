@@ -4,6 +4,7 @@ const CONFIG = {
   ORDERS_SHEET: 'Konfirmasi Jastip v4',
   USERS_SHEET: 'Jastipers',
   SESSIONS_SHEET: 'Sessions',
+  EMAIL_HISTORY_SHEET: 'JastiperEmailHistory',
   MAX_FILE_MB: 5,
   SESSION_HOURS: 12
 };
@@ -20,6 +21,10 @@ const USER_HEADERS = [
 ];
 
 const SESSION_HEADERS = ['tokenHash','jastiperId','createdAt','expiresAt'];
+
+const EMAIL_HISTORY_HEADERS = [
+  'historyId','jastiperId','oldEmail','newEmail','changedAt','status','errorCode'
+];
 
 function doGet(e) {
   const page = String((e && e.parameter && e.parameter.page) || '').toLowerCase();
@@ -47,6 +52,7 @@ function setupApp() {
   ensureSheet_(CONFIG.ORDERS_SHEET, ORDER_HEADERS);
   ensureSheet_(CONFIG.USERS_SHEET, USER_HEADERS);
   ensureSheet_(CONFIG.SESSIONS_SHEET, SESSION_HEADERS);
+  ensureSheet_(CONFIG.EMAIL_HISTORY_SHEET, EMAIL_HISTORY_HEADERS);
   return 'Setup multi-jastiper selesai.';
 }
 
@@ -133,30 +139,101 @@ function logoutJastiper(sessionToken) {
 }
 
 function updateJastiperSettings(sessionToken, payload) {
+  payload = payload || {};
   const session = requireSession_(sessionToken);
-  const users = getUsersSheet_();
-  const found = findUserById_(users, session.jastiperId);
-  if (!found) throw new Error('Akun tidak ditemukan.');
+  const email = clean_(payload.email, 180).toLowerCase();
+  const namaJastip = clean_(payload.namaJastip, 120);
+  const namaPemilik = clean_(payload.namaPemilik, 120);
+  const noHp = clean_(payload.noHp, 40);
 
-  const row = found.row;
-  const current = found.obj;
+  if (!namaJastip || !namaPemilik || !noHp || !email) {
+    throw new Error('Nama jastip, nama pemilik, nomor WhatsApp, dan email wajib diisi.');
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error('Format email tidak valid.');
+  }
 
-  const updated = USER_HEADERS.map(h => current[h]);
-  const set = (header, value) => {
-    updated[USER_HEADERS.indexOf(header)] = value;
-  };
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
 
-  set('updatedAt', new Date());
-  set('namaJastip', clean_(payload.namaJastip || current.namaJastip, 120));
-  set('namaPemilik', clean_(payload.namaPemilik || current.namaPemilik, 120));
-  set('noHp', clean_(payload.noHp || current.noHp, 40));
-  set('briNumber', clean_(payload.briNumber, 80));
-  set('briName', clean_(payload.briName, 120));
-  set('bsiNumber', clean_(payload.bsiNumber, 80));
-  set('bsiName', clean_(payload.bsiName, 120));
+  try {
+    const users = getUsersSheet_();
+    const found = findUserById_(users, session.jastiperId);
+    if (!found || String(found.obj.status || '') !== 'active') {
+      throw new Error('Akun tidak ditemukan atau tidak aktif.');
+    }
 
-  users.getRange(row, 1, 1, USER_HEADERS.length).setValues([updated]);
-  return buildAuthResponse_(session.jastiperId, sessionToken);
+    const current = found.obj;
+    const emailChanged = email !== String(current.email || '').toLowerCase();
+    const duplicate = emailChanged ? findUserByEmail_(users, email) : null;
+    if (duplicate && String(duplicate.obj.jastiperId) !== String(session.jastiperId)) {
+      throw new Error('Email ini sudah terdaftar.');
+    }
+
+    const updated = USER_HEADERS.map(h => current[h]);
+    const set = (header, value) => {
+      updated[USER_HEADERS.indexOf(header)] = value;
+    };
+
+    set('updatedAt', new Date());
+    set('namaJastip', namaJastip);
+    set('namaPemilik', namaPemilik);
+    set('email', email);
+    set('noHp', noHp);
+    set('briNumber', clean_(payload.briNumber, 80));
+    set('briName', clean_(payload.briName, 120));
+    set('bsiNumber', clean_(payload.bsiNumber, 80));
+    set('bsiName', clean_(payload.bsiName, 120));
+
+    if (!emailChanged) {
+      users.getRange(found.row, 1, 1, USER_HEADERS.length).setValues([updated]);
+      return buildAuthResponse_(session.jastiperId, sessionToken);
+    }
+
+    const history = getEmailHistorySheet_();
+    const historyRow = history.getLastRow() + 1;
+    history.appendRow([
+      'EMAIL-' + randomHex_(16).toUpperCase(),
+      session.jastiperId,
+      current.email,
+      email,
+      new Date(),
+      'PENDING',
+      ''
+    ]);
+
+    try {
+      users.getRange(found.row, 1, 1, USER_HEADERS.length).setValues([updated]);
+      history.getRange(
+        historyRow,
+        EMAIL_HISTORY_HEADERS.indexOf('status') + 1
+      ).setValue('APPLIED');
+      revokeSessionsForUser_(session.jastiperId);
+    } catch (error) {
+      try {
+        users.getRange(found.row, 1, 1, USER_HEADERS.length)
+          .setValues([USER_HEADERS.map(h => current[h])]);
+        history.getRange(
+          historyRow,
+          EMAIL_HISTORY_HEADERS.indexOf('status') + 1,
+          1,
+          2
+        ).setValues([['FAILED', 'PROFILE_UPDATE_FAILED']]);
+      } catch (rollbackError) {
+        throw new Error('Perubahan profil gagal dan perlu ditinjau administrator.');
+      }
+      throw new Error('Perubahan profil gagal. Data akun dipulihkan.');
+    }
+
+    return {
+      ok: true,
+      sessionInvalidated: true,
+      profile: publicProfile_(rowToObject_(USER_HEADERS, updated)),
+      shareUrl: buildShareUrl_(current.shareCode)
+    };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /* ========================= BUYER PUBLIC FORM ========================= */
@@ -433,6 +510,9 @@ function getRootFolder_() {
 function getOrdersSheet_() { return ensureSheet_(CONFIG.ORDERS_SHEET, ORDER_HEADERS); }
 function getUsersSheet_() { return ensureSheet_(CONFIG.USERS_SHEET, USER_HEADERS); }
 function getSessionsSheet_() { return ensureSheet_(CONFIG.SESSIONS_SHEET, SESSION_HEADERS); }
+function getEmailHistorySheet_() {
+  return ensureSheet_(CONFIG.EMAIL_HISTORY_SHEET, EMAIL_HISTORY_HEADERS);
+}
 
 function findUserByEmail_(sheet, email) {
   const last = sheet.getLastRow();
@@ -516,6 +596,16 @@ function cleanupSessions_() {
     const expires = sh.getRange(row, SESSION_HEADERS.indexOf('expiresAt')+1).getValue();
     const d = expires instanceof Date ? expires : new Date(expires);
     if (!expires || d.getTime() <= Date.now()) sh.deleteRow(row);
+  }
+}
+
+function revokeSessionsForUser_(jastiperId) {
+  const sh = getSessionsSheet_();
+  const idColumn = SESSION_HEADERS.indexOf('jastiperId') + 1;
+  for (let row = sh.getLastRow(); row >= 2; row--) {
+    if (String(sh.getRange(row, idColumn).getValue()) === String(jastiperId)) {
+      sh.deleteRow(row);
+    }
   }
 }
 

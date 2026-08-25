@@ -67,6 +67,7 @@
         <div class="settings-grid">
           <div class="field"><label>Nama Jastip</label><input id="pNamaJastip"></div>
           <div class="field"><label>Nama Pemilik</label><input id="pNamaPemilik"></div>
+          <div class="field"><label>Email Login</label><input id="pEmail" type="email" autocomplete="email"></div>
           <div class="field"><label>No. WhatsApp</label><input id="pNoHp"></div>
           <div class="field"><label>Nomor BRI</label><input id="pBriNumber" placeholder="Kosongkan jika tidak digunakan"></div>
           <div class="field"><label>Nama Rekening BRI</label><input id="pBriName"></div>
@@ -102,7 +103,7 @@
   }
 
   function fillSettings(p){
-    $('#pNamaJastip').value=p.namaJastip||'';$('#pNamaPemilik').value=p.namaPemilik||'';$('#pNoHp').value=p.noHp||'';
+    $('#pNamaJastip').value=p.namaJastip||'';$('#pNamaPemilik').value=p.namaPemilik||'';$('#pEmail').value=p.email||'';$('#pNoHp').value=p.noHp||'';
     $('#pBriNumber').value=p.briNumber||'';$('#pBriName').value=p.briName||'';$('#pBsiNumber').value=p.bsiNumber||'';$('#pBsiName').value=p.bsiName||'';
   }
 
@@ -155,9 +156,17 @@
 
   $('#saveSettings').onclick=()=>{
     const btn=$('#saveSettings');busy(btn,true,'Menyimpan…');
-    google.script.run.withSuccessHandler(res=>{busy(btn,false,'Simpan Pengaturan');state.profile=res.profile;state.shareUrl=res.shareUrl;showApp();alert('Pengaturan tersimpan.')})
+    google.script.run.withSuccessHandler(res=>{
+      busy(btn,false,'Simpan Pengaturan');
+      if(res.sessionInvalidated){
+        localStorage.removeItem('jastipSession');state.sessionToken='';
+        alert('Email diperbarui. Silakan login kembali.');
+        window.location.href='?page=login';return;
+      }
+      state.profile=res.profile;state.shareUrl=res.shareUrl;showApp();alert('Pengaturan tersimpan.');
+    })
       .withFailureHandler(e=>{busy(btn,false,'Simpan Pengaturan');alert(e.message||String(e))})
-      .updateJastiperSettings(state.sessionToken,{namaJastip:$('#pNamaJastip').value,namaPemilik:$('#pNamaPemilik').value,noHp:$('#pNoHp').value,briNumber:$('#pBriNumber').value,briName:$('#pBriName').value,bsiNumber:$('#pBsiNumber').value,bsiName:$('#pBsiName').value});
+      .updateJastiperSettings(state.sessionToken,{namaJastip:$('#pNamaJastip').value,namaPemilik:$('#pNamaPemilik').value,email:$('#pEmail').value,noHp:$('#pNoHp').value,briNumber:$('#pBriNumber').value,briName:$('#pBriName').value,bsiNumber:$('#pBsiNumber').value,bsiName:$('#pBsiName').value});
   };
 
   $('#logoutBtn').onclick=()=>{
