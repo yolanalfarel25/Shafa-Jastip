@@ -92,7 +92,14 @@ Hapus hanya file dokumentasi yang dibuat dalam item ini sebelum commit, atau rev
 
 ### Hasil validasi
 
-Belum lengkap. Menunggu dokumen, pemeriksaan rahasia, review diff, dan keputusan baseline Git.
+- Dokumen wajib tersedia: `OK`.
+- `appsscript.json` valid JSON: `OK`.
+- Pemeriksaan pola API key/private key/client secret: `OK`; hanya placeholder konfigurasi yang disengaja ditemukan.
+- Dependency atau artefak sementara baru: tidak ditemukan.
+- Repository Git lokal dibuat pada branch `docs/JST-001-baseline-governance`.
+- Baseline commit: `a9ec487`.
+- Working tree setelah commit: bersih.
+- Validasi runtime GAS dan staging: belum dijalankan; bukan scope approval ini.
 
 ### Catatan review
 
