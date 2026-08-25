@@ -171,8 +171,88 @@ Belum lengkap. Menunggu review diff, pemeriksaan source, dan smoke test staging.
 ### JST-003 — Audit keamanan autentikasi dan sesi
 
 - **Status:** `PROPOSED`
-- Tinjau penyimpanan token, expiry, perbandingan token, logout, brute force, serta otorisasi server-side.
-- Perubahan auth dilarang sebelum threat model dan approval khusus tersedia.
+- **Jenis:** `security`
+- **Pemilik:** agen keamanan
+- **Dibuat:** 2026-08-25
+- **Approval rencana:** pengguna, 2026-08-25, dengan teks `APPROVE PLAN JST-003`
+- **Approval audit/implementasi:** pengguna, 2026-08-25, dengan teks `APPROVE AUDIT JST-003...`; ditunda pelaksanaannya oleh pengguna pada 2026-08-25 agar menyelesaikan review JST-008 dan JST-009 terlebih dahulu.
+
+#### Tujuan
+
+Memetakan trust boundary, alur autentikasi, otorisasi, dan siklus hidup sesi sebelum perubahan keamanan dilakukan.
+
+#### Acceptance criteria
+
+- Seluruh endpoint autentikasi dan operasi terproteksi terinventaris.
+- Penyimpanan, pembuatan, perbandingan, masa berlaku, rotasi, pencabutan, dan logging token ditinjau.
+- Login, logout, pergantian email, serta pencabutan sesi dipetakan.
+- Otorisasi kepemilikan jastiper pada setiap operasi sensitif ditinjau server-side.
+- Risiko brute force, account enumeration, replay, session fixation, dan akses lintas jastiper dinilai.
+- Temuan mencantumkan bukti file/fungsi, tingkat dampak, keyakinan, dan mitigasi.
+- Tidak ada token, kredensial, ID privat, atau data produksi dicatat dalam laporan.
+- Audit tidak mengubah source, konfigurasi, scope OAuth, permission, atau data.
+- Setiap perbaikan menjadi item rencana terpisah dan memerlukan approval eksplisit.
+
+#### Ruang lingkup
+
+- `01_Login_Signup/Login.html`
+- `02_Dashboard_Jastiper/Dashboard.html`
+- `04_Backend_GAS/Code.gs`
+- `04_Backend_GAS/appsscript.json`
+- `SECURITY.md`
+- `docs/PROJECT_CONTEXT.md`
+- `PLAN.md`
+- Laporan audit baru hanya setelah approval audit terpisah.
+
+#### Di luar ruang lingkup
+
+- Perubahan autentikasi, otorisasi, token, hashing, sesi, atau UI.
+- Penambahan dependency.
+- Perubahan manifest, scope OAuth, permission, atau sharing.
+- Deployment GAS.
+- Operasi Spreadsheet atau Drive produksi.
+- Pengujian memakai akun, token, atau data produksi.
+- Perbaikan temuan audit.
+
+#### Risiko keamanan/data
+
+- Source dapat memuat pola akses ke konfigurasi sensitif; nilai rahasia tidak boleh disalin ke laporan atau log.
+- Pengujian aktif terhadap login dapat memicu lockout atau memengaruhi akun; audit awal wajib statis.
+- Kesimpulan tanpa penelusuran seluruh caller dapat melewatkan jalur bypass otorisasi.
+- Perubahan auth tanpa threat model dapat menciptakan account takeover atau sesi yang tidak tercabut.
+
+#### Rencana audit
+
+1. Dapatkan approval audit terpisah; approval rencana ini tidak mengizinkan perubahan source.
+2. Pastikan audit dilakukan pada branch `security/JST-003-audit-auth-sesi` tanpa mencampur perubahan JST-008/JST-009.
+3. Inventaris endpoint, caller browser, penyimpanan akun, dan penyimpanan sesi melalui pembacaan statis.
+4. Petakan trust boundary dan aliran data login, validasi sesi, logout, perubahan email, serta operasi terproteksi.
+5. Tinjau token entropy, penyimpanan, perbandingan, expiry, rotasi, pencabutan, dan potensi kebocoran log.
+6. Tinjau validasi input, account enumeration, brute force, replay, session fixation, dan otorisasi kepemilikan server-side.
+7. Catat temuan berbasis bukti tanpa mengubah source; pisahkan fakta, asumsi, serta hal yang belum dapat diuji.
+8. Ajukan item rencana perbaikan terpisah untuk setiap perubahan yang disarankan.
+
+#### Rencana validasi
+
+1. Cocokkan inventaris endpoint dengan seluruh fungsi publik GAS dan pemanggil `google.script.run`.
+2. Cari seluruh referensi token, sesi, login, logout, password, email, dan pemeriksaan identitas.
+3. Pastikan setiap temuan menunjuk lokasi source dan skenario penyalahgunaan yang dapat direproduksi secara aman.
+4. Tinjau laporan untuk rahasia, token, ID privat, data buyer, dan bukti transfer.
+5. Periksa `git diff` serta daftar file; audit tidak boleh mengubah source atau konfigurasi.
+6. Catat keterbatasan karena tidak memakai runtime staging.
+7. Ubah status menjadi `REVIEW` hanya setelah laporan dan validasi selesai.
+
+#### Rencana rollback
+
+Jika pencatatan rencana ini dibatalkan sebelum commit, kembalikan hanya blok JST-003 pada `PLAN.md`. Jika sudah di-commit, revert commit dokumentasi `[JST-003]`; jangan reset histori bersama. Audit tidak boleh menyentuh source atau data produksi.
+
+#### Hasil validasi
+
+Belum dijalankan. Menunggu approval audit terpisah.
+
+#### Catatan review
+
+Approval audit telah diberikan pengguna pada 2026-08-25, namun pelaksanaan ditunda agar review akhir `JST-008` dan `JST-009` diselesaikan terlebih dahulu tanpa mencampur perubahan pada working tree `feat/JST-008-profil-histori-email`. Belum ada izin mengubah source, commit, merge, atau deploy.
 
 ### JST-004 — Validasi upload server-side
 
@@ -197,6 +277,172 @@ Belum lengkap. Menunggu review diff, pemeriksaan source, dan smoke test staging.
 - **Status:** `PROPOSED`
 - Buat smoke test untuk login, dashboard, submit konfirmasi, edit, upload, dan isolasi antarjastiper.
 - Gunakan Spreadsheet/Drive staging terpisah.
+
+---
+
+## JST-008 — Perubahan profil dan histori email jastiper
+
+- **Status:** `DONE`
+- **Jenis:** `feat`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-25
+- **Approval rencana:** pengguna, 2026-08-25; hanya untuk pencatatan item ini di `PLAN.md`
+- **Approval implementasi:** pengguna, 2026-08-25, dengan teks `APPROVE IMPLEMENTATION JST-008`
+- **Approval akhir/close:** pengguna, 2026-08-25, dengan teks `APPROVE FINAL JST-008 DAN JST-009...`
+
+### Tujuan
+
+Memungkinkan jastiper memperbarui username dan email aktif tanpa menggandakan akun, serta menyimpan audit perubahan email secara terpisah.
+
+### Acceptance criteria
+
+- Username dan email aktif dapat diperbarui dari dashboard.
+- Format email dinormalisasi dan divalidasi ulang server-side.
+- Email baru harus unik terhadap akun jastiper lain.
+- Baris akun pada sheet `Jastipers` tetap; kolom `email` berisi email aktif.
+- Setiap upaya perubahan email memiliki satu catatan audit pada sheet `JastiperEmailHistory`.
+- Catatan audit minimum memuat `historyId`, `jastiperId`, `oldEmail`, `newEmail`, `changedAt`, `status`, dan `errorCode`.
+- Status audit memakai `PENDING`, `APPLIED`, atau `FAILED`; kegagalan tidak boleh tercatat sebagai perubahan sukses.
+- Validasi gagal tidak mengubah akun.
+- Perubahan email yang berhasil mencabut sesi lama dan meminta pengguna login ulang.
+- Perubahan username saja tidak membuat histori email.
+- Data buyer, rekening, pesanan, dan file tidak berubah.
+- Password, token, data buyer, dan bukti transfer tidak masuk histori atau log.
+- Otorisasi kepemilikan akun diverifikasi server-side.
+
+### Ruang lingkup
+
+- `04_Backend_GAS/Code.gs`
+- `02_Dashboard_Jastiper/Dashboard.html`
+- `PLAN.md`
+- Satu pemeriksaan runnable kecil tanpa dependency baru bila diperlukan.
+
+### Di luar ruang lingkup
+
+- Reset atau perubahan password.
+- Verifikasi email melalui tautan atau OTP.
+- Migrasi atau penggabungan akun.
+- Deployment GAS.
+- Operasi pada Spreadsheet atau Drive produksi.
+- Perubahan scope OAuth, permission, atau sharing.
+- Perubahan data buyer, rekening, pesanan, upload, dan bukti transfer.
+- Refactor yang tidak diperlukan oleh perubahan profil.
+
+### Risiko keamanan/data
+
+- Pergantian email dapat dipakai untuk mengambil alih akun jika sesi dan kepemilikan tidak diverifikasi server-side.
+- Pemeriksaan unik yang tidak dilindungi lock dapat menghasilkan email ganda saat request bersamaan.
+- Google Sheets tidak menyediakan transaksi penuh antara append histori, update akun, dan pencabutan sesi.
+- Log atau histori yang terlalu luas dapat membocorkan token atau data sensitif.
+- Kegagalan parsial dapat membuat histori dan email aktif tidak konsisten.
+- Normalisasi email yang tidak konsisten dapat melewati pemeriksaan unik.
+
+### Rencana implementasi
+
+1. Buat branch `feat/JST-008-profil-histori-email` setelah approval implementasi.
+2. Periksa ulang seluruh file sasaran dan kontrak data sebelum edit.
+3. Tambahkan operasi backend terotorisasi untuk perubahan username dan email.
+4. Normalisasi serta validasi input, lalu gunakan lock selama pemeriksaan unik dan perubahan data.
+5. Saat email berubah, buat audit `PENDING`, perbarui baris akun, ubah audit menjadi `APPLIED`, lalu cabut sesi lama.
+6. Jika operasi gagal, pertahankan atau pulihkan email aktif bila aman dan tandai audit `FAILED` dengan `errorCode` non-sensitif.
+7. Tambahkan UI dashboard minimum untuk mengirim perubahan dan menangani login ulang.
+8. Jangan menambah dependency atau mengubah file di luar scope.
+
+### Rencana validasi
+
+1. Jalankan pemeriksaan syntax HTML/JavaScript dan GAS yang tersedia.
+2. Uji username valid, email valid, email invalid, email duplikat, email sama, dan input kosong sesuai aturan.
+3. Uji bahwa perubahan username saja tidak menambah histori email.
+4. Uji kegagalan append dan update memakai data sintetis pada lingkungan non-produksi.
+5. Uji request tanpa sesi, sesi milik akun lain, dan request bersamaan.
+6. Pastikan perubahan email sukses mencabut sesi lama.
+7. Tinjau diff dan daftar file untuk perubahan tak terduga.
+8. Cari pola rahasia, token, dan data pribadi baru.
+9. Catat bukti, keterbatasan, dan status akhir `REVIEW`.
+
+### Rencana rollback
+
+Revert commit `[JST-008]` untuk source. Jangan menghapus histori produksi. Jika kegagalan parsial terjadi, pulihkan email aktif memakai catatan audit yang terverifikasi dan tambahkan catatan koreksi baru; jangan menimpa histori lama. Deployment dan pemulihan data memerlukan approval terpisah.
+
+### Hasil validasi
+
+- Branch kerja: `feat/JST-008-profil-histori-email`.
+- `git diff --check`: lulus, exit code `0`; peringatan konversi LF ke CRLF pada `04_Backend_GAS/Code.gs`.
+- Review diff: perubahan JST-008 terbatas pada `04_Backend_GAS/Code.gs`, `02_Dashboard_Jastiper/Dashboard.html`, dan `PLAN.md`.
+- Pemeriksaan pola rahasia/data sensitif: tidak menemukan nilai kredensial baru; kecocokan hanya nama field, aturan, teks UI, dan source lama.
+- Dependency, scope OAuth, deployment, serta operasi Spreadsheet/Drive produksi: tidak dilakukan.
+- File tak terlacak `01_Login_Signup/Login-Jastip-Apps.html` berada di luar scope JST-008; tidak diubah atau dimasukkan ke perubahan ini.
+- Smoke test GAS dan pengujian kegagalan parsial, request bersamaan, serta pencabutan sesi belum dijalankan karena memerlukan lingkungan non-produksi GAS/Spreadsheet.
+- Batasan transaksi tetap: kegagalan setelah status audit `APPLIED` tetapi sebelum seluruh sesi tercabut dapat memerlukan tinjauan administrator.
+
+### Catatan review
+
+Approval pencatatan rencana diterima (`APPROVE PLAN JST-008`). Approval implementasi diterima (`APPROVE IMPLEMENTATION JST-008`). Branch kerja: `feat/JST-008-profil-histori-email`. Review kode berlapis selesai tanpa temuan fatal; approval akhir penutupan diterima pada 2026-08-25. Status menjadi `DONE`. Tidak mencakup merge atau deployment.
+
+---
+
+## JST-009 — Dokumentasi panduan prompt operasional agen
+
+- **Status:** `DONE`
+- **Jenis:** `docs`
+- **Pemilik:** agen dokumentasi
+- **Dibuat:** 2026-08-25
+- **Approval rencana/implementasi:** pengguna, 2026-08-25, dengan teks `APPROVE PLAN DAN IMPLEMENTASI DOKUMENTASI PROMPT`
+- **Approval akhir/close:** pengguna, 2026-08-25, dengan teks `APPROVE FINAL JST-008 DAN JST-009...`
+
+### Tujuan
+
+Menyediakan panduan prompt Markdown yang siap disalin untuk tiga skenario: memulai build, melanjutkan plan/task, dan pemulihan saat sesi/Act terkendala di tengah jalan.
+
+### Acceptance criteria
+
+- File `docs/AGENT_PROMPTS.md` tersedia dan valid.
+- Memuat tiga prompt lengkap: awal build, lanjut task, dan recovery task.
+- Seluruh prompt selaras dengan `AGENTS.md`, `PLAN.md`, `SECURITY.md`, `docs/BMAD.md`, dan `docs/PROJECT_CONTEXT.md`.
+- `README.md` memuat tautan ke `docs/AGENT_PROMPTS.md`.
+- Tidak ada perubahan source aplikasi, konfigurasi GAS, dependensi, atau data produksi.
+
+### Ruang lingkup
+
+- `docs/AGENT_PROMPTS.md`
+- `README.md`
+- `PLAN.md`
+
+### Di luar ruang lingkup
+
+- Perubahan source HTML / GAS.
+- Perubahan manifest / scope OAuth.
+- Penambahan dependency.
+- Deployment dan operasi data produksi.
+
+### Risiko keamanan/data
+
+- Prompt yang keliru dapat menginstruksikan agen mengabaikan approval atau memodifikasi file tanpa izin.
+- Perubahan dokumentasi dapat memuat rahasia atau instruksi destruktif bila tidak diaudit.
+
+### Rencana implementasi
+
+1. Dapatkan persetujuan eksplisit pengguna untuk lingkup dokumentasi prompt.
+2. Buat `docs/AGENT_PROMPTS.md` berisi tiga template prompt terstandarisasi.
+3. Tambahkan referensi file pada `README.md`.
+4. Catat item `JST-009` di `PLAN.md`.
+5. Jalankan validasi konsistensi, diff, dan audit rahasia.
+
+### Rencana rollback
+
+Hapus `docs/AGENT_PROMPTS.md` dan kembalikan baris referensi pada `README.md` serta `PLAN.md` sebelum commit. Jangan melakukan reset histori bersama.
+
+### Hasil validasi
+
+- `docs/AGENT_PROMPTS.md` dibuat dengan 3 prompt lengkap: `OK`.
+- Tautan di `README.md` diperbarui: `OK`.
+- Tidak ada perubahan source code, manifest, konfigurasi GAS, atau dependency baru: `OK`.
+- Perubahan diff terbatas pada scope dokumentasi `JST-009`.
+- Pemeriksaan rahasia: tidak ada kredensial atau token baru yang dimasukkan.
+
+### Catatan review
+
+Pekerjaan selesai diimplementasikan dan divalidasi. Approval akhir penutupan diterima pada 2026-08-25. Status menjadi `DONE`. Tidak mencakup merge atau deployment.
 
 ---
 

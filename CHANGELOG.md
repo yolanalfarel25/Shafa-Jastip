@@ -8,6 +8,7 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 
 - Dokumen governance, BMAD, konteks brownfield, keamanan, agenda, dan ADR untuk baseline prabuild (`JST-001`).
 - Identitas visual “Jastip Apps” dan aset logo pada antarmuka (`JST-002`, menunggu review manusia).
+- Panduan prompt operasional agen untuk memulai, melanjutkan, dan memulihkan pekerjaan (`JST-009`).
 
 ### Security
 
@@ -16,7 +17,7 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 
 ### Changed
 
-- Belum ada perubahan yang disetujui sebagai rilis.
+- Dashboard dan backend mendukung perubahan username serta email aktif dengan histori audit email dan pencabutan sesi lama (`JST-008`).
 
 ## Aturan pencatatan
 
