@@ -1,0 +1,46 @@
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+service-account*.json
+token*.json
+.clasp.json
+
+# Dependencies/build artifacts if tooling is added later
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+
+# Local exports and sensitive operational data
+exports/
+backups/
+data/
+screenshots/
+*.csv
+*.xlsx
+*.xls
+*.zip
+
+# GAS local metadata containing deployment identifiers
+.claspignore.local
