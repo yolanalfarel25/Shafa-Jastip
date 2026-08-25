@@ -6,7 +6,10 @@ const CONFIG = {
   SESSIONS_SHEET: 'Sessions',
   EMAIL_HISTORY_SHEET: 'JastiperEmailHistory',
   MAX_FILE_MB: 5,
-  SESSION_HOURS: 12
+  SESSION_HOURS: 12,
+  AUTH_RATE_LIMIT_SECONDS: 10 * 60,
+  LOGIN_FAILURE_LIMIT: 10,
+  SIGNUP_ATTEMPT_LIMIT: 5
 };
 
 const ORDER_HEADERS = [
@@ -76,6 +79,8 @@ function signupJastiper(payload) {
     throw new Error('Password minimal 8 karakter.');
   }
 
+  enforceAndRecordAuthRateLimit_('signup', email, CONFIG.SIGNUP_ATTEMPT_LIMIT);
+
   const users = getUsersSheet_();
   if (findUserByEmail_(users, email)) {
     throw new Error('Email ini sudah terdaftar.');
@@ -105,18 +110,26 @@ function loginJastiper(email, password) {
   password = String(password || '');
   if (!email || !password) throw new Error('Email dan password wajib diisi.');
 
+  enforceAuthRateLimit_('login', email, CONFIG.LOGIN_FAILURE_LIMIT);
+
   const users = getUsersSheet_();
   const found = findUserByEmail_(users, email);
-  if (!found) throw new Error('Email atau password salah.');
-
-  const user = found.obj;
-  if (String(user.status || 'active') !== 'active') {
-    throw new Error('Akun tidak aktif.');
-  }
-  if (hashPassword_(password, user.passwordSalt) !== user.passwordHash) {
+  if (!found) {
+    recordAuthRateLimit_('login', email);
     throw new Error('Email atau password salah.');
   }
 
+  const user = found.obj;
+  if (String(user.status || 'active') !== 'active') {
+    recordAuthRateLimit_('login', email);
+    throw new Error('Akun tidak aktif.');
+  }
+  if (hashPassword_(password, user.passwordSalt) !== user.passwordHash) {
+    recordAuthRateLimit_('login', email);
+    throw new Error('Email atau password salah.');
+  }
+
+  clearAuthRateLimit_('login', email);
   const session = createSession_(user.jastiperId);
   return buildAuthResponse_(user.jastiperId, session);
 }
@@ -460,6 +473,56 @@ function getJastiperImageData(sessionToken, driveFileUrl) {
 }
 
 /* ========================= HELPERS ========================= */
+
+function authRateLimitKey_(operation, identity) {
+  return `auth:${operation}:${sha256_(String(identity || ''))}`;
+}
+
+function getAuthRateLimitCount_(cache, key) {
+  const value = Number(cache.get(key) || 0);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+}
+
+function enforceAuthRateLimit_(operation, identity, limit) {
+  try {
+    const cache = CacheService.getScriptCache();
+    if (getAuthRateLimitCount_(cache, authRateLimitKey_(operation, identity)) >= limit) {
+      throw new Error('Terlalu banyak percobaan. Silakan coba lagi nanti.');
+    }
+  } catch (error) {
+    if (error && error.message === 'Terlalu banyak percobaan. Silakan coba lagi nanti.') {
+      throw error;
+    }
+    // CacheService fail-open: autentikasi tetap tersedia saat cache bermasalah.
+  }
+}
+
+function recordAuthRateLimit_(operation, identity) {
+  try {
+    const cache = CacheService.getScriptCache();
+    const key = authRateLimitKey_(operation, identity);
+    cache.put(
+      key,
+      String(getAuthRateLimitCount_(cache, key) + 1),
+      CONFIG.AUTH_RATE_LIMIT_SECONDS
+    );
+  } catch (error) {
+    // CacheService fail-open; jangan log identity atau key.
+  }
+}
+
+function enforceAndRecordAuthRateLimit_(operation, identity, limit) {
+  enforceAuthRateLimit_(operation, identity, limit);
+  recordAuthRateLimit_(operation, identity);
+}
+
+function clearAuthRateLimit_(operation, identity) {
+  try {
+    CacheService.getScriptCache().remove(authRateLimitKey_(operation, identity));
+  } catch (error) {
+    // CacheService fail-open; jangan log identity atau key.
+  }
+}
 
 function validateBuyerPayload_(payload) {
   if (!payload) throw new Error('Data formulir kosong.');

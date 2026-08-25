@@ -453,6 +453,113 @@ Pekerjaan selesai diimplementasikan dan divalidasi. Approval akhir penutupan dit
 
 ---
 
+## JST-010 — Rate limiting login dan signup
+
+- **Status:** `DONE`
+- **Jenis:** `security`
+- **Pemilik:** agen keamanan
+- **Dibuat:** 2026-08-25
+- **Approval pencatatan rencana:** pengguna, 2026-08-25, dengan teks `APPROVE COMMIT JST-003 DAN PENCATATAN PLAN JST-010 SEBAGAI PROPOSED; TANPA IMPLEMENTASI SOURCE, MERGE, DEPLOY, NETWORK, ATAU DATA PRODUKSI.`
+- **Approval implementasi:** pengguna, 2026-08-25, dengan teks `APPROVE IMPLEMENTATION JST-010 dengan login 10/10 menit, signup 5/10 menit, key identitas SHA-256, CacheService fail-open; izinkan status APPROVED/IN_PROGRESS, branch security/JST-010-rate-limit-auth, perubahan hanya pada 04_Backend_GAS/Code.gs dan PLAN.md, tanpa commit/merge/deploy/network/data produksi.`
+
+### Tujuan
+
+Membatasi percobaan login berulang dan spam signup pada endpoint publik memakai `CacheService` native GAS tanpa mengubah kontrak autentikasi, penyimpanan password, atau siklus hidup sesi.
+
+### Acceptance criteria
+
+- Rate limit diterapkan server-side sebelum operasi autentikasi yang mahal atau perubahan data.
+- Login dan signup memiliki bucket terpisah.
+- Key cache tidak memuat password, token sesi, email plaintext, atau data pribadi lain; identitas yang diperlukan di-hash.
+- Batas dan jendela waktu ditetapkan eksplisit serta tidak dapat diturunkan oleh input browser.
+- Login gagal menambah hitungan; login berhasil membersihkan bucket identitas terkait.
+- Signup berulang dibatasi tanpa mengungkap apakah email sudah terdaftar.
+- Respons saat batas terlampaui bersifat generik dan tidak memuat nilai key internal.
+- Kegagalan `CacheService` ditangani tanpa membocorkan rahasia atau merusak data.
+- Validasi input, verifikasi password, autentikasi sesi, dan otorisasi server-side yang ada tidak dilemahkan.
+- Tidak ada dependency, perubahan manifest, scope OAuth, deployment, network eksternal, atau operasi data produksi.
+
+### Ruang lingkup
+
+- `04_Backend_GAS/Code.gs`
+- `PLAN.md`
+- Satu pemeriksaan runnable kecil tanpa dependency baru bila diperlukan.
+
+### Di luar ruang lingkup
+
+- Perubahan UI login, signup, atau dashboard.
+- Migrasi password hashing atau penggunaan auth provider eksternal.
+- Lock untuk keunikan signup; ditangani terpisah pada kandidat `JST-011`.
+- Perubahan format token, masa sesi, penyimpanan sesi, atau logout.
+- Perubahan `04_Backend_GAS/appsscript.json`, scope OAuth, permission, atau sharing.
+- Dependency baru.
+- Deployment GAS.
+- Network/API eksternal.
+- Operasi Spreadsheet atau Drive produksi.
+- Pengujian memakai akun, token, email, atau data produksi.
+
+### Risiko keamanan/data
+
+- `CacheService` bersifat best-effort; eviction dini dapat mengurangi efektivitas pembatasan.
+- Key berbasis identitas dapat membocorkan email bila tidak di-hash.
+- Batas terlalu ketat dapat menyebabkan denial of service terhadap pengguna sah.
+- Operasi get/increment/put cache tidak menyediakan transaksi kuat; request konkuren dapat melewati batas kecil.
+- Fail-closed saat cache bermasalah dapat memblokir semua login; fail-open mengurangi perlindungan sementara.
+- Pesan berbeda antara email terdaftar dan tidak terdaftar dapat memperkuat user enumeration.
+
+### Rencana implementasi
+
+1. Dapatkan approval implementasi terpisah; approval pencatatan rencana tidak mengizinkan perubahan source.
+2. Pastikan hasil JST-003 tidak tercampur dan buat branch `security/JST-010-rate-limit-auth`.
+3. Baca ulang seluruh file dalam ruang lingkup sebelum edit.
+4. Tetapkan konstanta batas dan jendela waktu secara server-side untuk login dan signup.
+5. Bentuk key cache dari jenis operasi dan hash identitas yang sudah dinormalisasi; jangan masukkan password, token, atau email plaintext.
+6. Tambahkan helper minimum berbasis `CacheService.getScriptCache()` untuk memeriksa serta mencatat percobaan.
+7. Terapkan pemeriksaan pada `loginJastiper` dan `signupJastiper` tanpa menurunkan validasi yang ada.
+8. Bersihkan bucket login setelah autentikasi berhasil.
+9. Gunakan respons generik saat batas terlampaui dan tangani kegagalan cache secara terdokumentasi.
+10. Jangan mengubah file di luar scope atau menambah dependency.
+
+### Rencana validasi
+
+1. Jalankan pemeriksaan syntax GAS/JavaScript yang tersedia.
+2. Jalankan pemeriksaan runnable dengan waktu/cache sintetis bila helper dapat dipisahkan tanpa abstraksi berlebih.
+3. Verifikasi percobaan di bawah batas diteruskan dan percobaan berikutnya ditolak pada boundary tepat.
+4. Verifikasi bucket login dan signup terpisah serta identitas berbeda tidak berbagi bucket.
+5. Verifikasi login sukses membersihkan bucket terkait dan login gagal menambah hitungan.
+6. Verifikasi key serta pesan error tidak memuat email plaintext, password, token, ID produksi, atau data pribadi.
+7. Verifikasi perilaku saat cache gagal sesuai keputusan yang disetujui.
+8. Tinjau keterbatasan request konkuren dan eviction `CacheService`; jangan klaim jaminan yang tidak tersedia.
+9. Jalankan `git diff --check`, tinjau diff, dan periksa daftar file untuk perubahan tak terduga.
+10. Jalankan audit pola rahasia dan data pribadi baru.
+11. Catat bukti serta keterbatasan, lalu ubah status menjadi `REVIEW`.
+
+### Rencana rollback
+
+Sebelum commit, kembalikan hanya perubahan `JST-010` pada file scope. Setelah commit, revert commit `[JST-010]`; jangan reset histori bersama. Jika sudah pernah dideploy melalui approval terpisah, rollback deployment memerlukan approval baru. Tidak ada migrasi atau pemulihan data karena item ini tidak mengubah data produksi.
+
+### Hasil validasi
+
+- Branch kerja: `security/JST-010-rate-limit-auth`.
+- Pemeriksaan syntax `04_Backend_GAS/Code.gs`: valid (Node `vm.Script`, exit code `0`).
+- Runnable validation `tests/jst010_rate_limit_check.js`:
+  1. Login limit 10/10 menit memicu error `Terlalu banyak percobaan. Silakan coba lagi nanti.` pada percobaan ke-11: `LULUS`.
+  2. Login sukses membersihkan bucket identitas login: `LULUS`.
+  3. Signup limit 5/10 menit memicu error pada percobaan ke-6: `LULUS`.
+  4. Isolasi bucket operasi (`login` vs `signup`) dan isolasi identitas: `LULUS`.
+  5. Perilaku `CacheService` fail-open saat terjadi error internal cache: `LULUS`.
+- `git diff --check`: bersih tanpa whitespace/formatting error.
+- Audit diff dan file: perubahan dibatasi hanya pada `04_Backend_GAS/Code.gs` dan `PLAN.md`.
+- Audit rahasia dan privasi: key cache memakai SHA-256 (`auth:<op>:<hash>`), tidak memuat password, token, email plaintext, atau data sensitif baru.
+- Keterbatasan tercatat: `CacheService` bersifat best-effort (eviction dini dapat terjadi pada load tinggi) dan tidak atomik terhadap lonjakan konkurensi ekstrem.
+- Status diubah menjadi `REVIEW`.
+
+### Catatan review
+
+Implementasi rate limiting login/signup selesai dan divalidasi. Approval akhir diterima pada 2026-08-25 dengan teks `APPROVE FINAL JST-010 — ubah ke DONE, update CHANGELOG.md, dan commit; tanpa merge/deploy`. Status menjadi `DONE`. Tidak mencakup merge atau deployment.
+
+---
+
 ## Template item baru
 
 Salin blok berikut. Jangan menghapus item lama.
