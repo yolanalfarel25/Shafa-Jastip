@@ -63,6 +63,7 @@ Detail operasional wajib ditulis setelah lingkungan GAS aktual dikonfirmasi. Jan
 - `SECURITY.md` — kebijakan keamanan dan pelaporan.
 - `docs/PROJECT_CONTEXT.md` — peta teknis brownfield.
 - `docs/BMAD.md` — workflow analisis hingga delivery.
+- `docs/AGENT_PROMPTS.md` — panduan prompt agen (awal build, lanjut task, pemulihan task).
 - `docs/decisions/README.md` — log keputusan arsitektur.
 
 ## Rekomendasi awal
