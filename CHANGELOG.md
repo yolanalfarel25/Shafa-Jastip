@@ -14,6 +14,7 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 
 - Approval gate untuk auth, token, upload, OAuth, data produksi, permission, dan deployment.
 - Daftar risiko awal auth, upload, tenant isolation, race condition, clickjacking, dan retensi data.
+- Audit keamanan statis autentikasi dan sesi GAS (`JST-003`).
 
 ### Changed
 

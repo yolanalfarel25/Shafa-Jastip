@@ -170,12 +170,13 @@ Belum lengkap. Menunggu review diff, pemeriksaan source, dan smoke test staging.
 
 ### JST-003 — Audit keamanan autentikasi dan sesi
 
-- **Status:** `PROPOSED`
+- **Status:** `DONE`
 - **Jenis:** `security`
 - **Pemilik:** agen keamanan
 - **Dibuat:** 2026-08-25
 - **Approval rencana:** pengguna, 2026-08-25, dengan teks `APPROVE PLAN JST-003`
-- **Approval audit/implementasi:** pengguna, 2026-08-25, dengan teks `APPROVE AUDIT JST-003...`; ditunda pelaksanaannya oleh pengguna pada 2026-08-25 agar menyelesaikan review JST-008 dan JST-009 terlebih dahulu.
+- **Approval audit/implementasi:** pengguna, 2026-08-25, dengan teks `APPROVE JST-003 UNTUK AUDIT STATIS SAJA; IZINKAN UPDATE STATUS KE APPROVED/IN_PROGRESS, BUAT BRANCH security/JST-003-audit-auth-sesi, DAN BUAT LAPORAN AUDIT. TANPA PERUBAHAN SOURCE, COMMIT, MERGE, DEPLOY, NETWORK, ATAU DATA PRODUKSI.`
+- **Approval akhir/close:** pengguna, 2026-08-25, dengan teks `APPROVE FINAL JST-003 — tutup ke DONE, perbarui CHANGELOG.md, tanpa commit/merge/deploy`
 
 #### Tujuan
 
@@ -201,8 +202,8 @@ Memetakan trust boundary, alur autentikasi, otorisasi, dan siklus hidup sesi seb
 - `04_Backend_GAS/appsscript.json`
 - `SECURITY.md`
 - `docs/PROJECT_CONTEXT.md`
+- `docs/AUDIT_AUTH_SESI_JST-003.md`
 - `PLAN.md`
-- Laporan audit baru hanya setelah approval audit terpisah.
 
 #### Di luar ruang lingkup
 
@@ -244,15 +245,21 @@ Memetakan trust boundary, alur autentikasi, otorisasi, dan siklus hidup sesi seb
 
 #### Rencana rollback
 
-Jika pencatatan rencana ini dibatalkan sebelum commit, kembalikan hanya blok JST-003 pada `PLAN.md`. Jika sudah di-commit, revert commit dokumentasi `[JST-003]`; jangan reset histori bersama. Audit tidak boleh menyentuh source atau data produksi.
+Jika pembatalan dilakukan sebelum commit, hapus `docs/AUDIT_AUTH_SESI_JST-003.md` dan kembalikan blok `PLAN.md`. Jika sudah di-commit, revert commit dokumentasi `[JST-003]`. Jangan reset histori bersama. Audit tidak menyentuh source code atau data produksi.
 
 #### Hasil validasi
 
-Belum dijalankan. Menunggu approval audit terpisah.
+- Branch kerja: `security/JST-003-audit-auth-sesi`.
+- Seluruh endpoint publik dan operasi terproteksi berhasil dipetakan: `signupJastiper`, `loginJastiper`, `getJastiperSession`, `logoutJastiper`, `getJastiperDashboard`, `getJastiperImageData`, `updateJastiperSettings`, `getPublicConfig`, `saveConfirmation`, `getConfirmation`.
+- Siklus hidup sesi diverifikasi: format UUID ganda (64 hex), hash SHA-256 tersimpan di Sheets, expiry boundary `exp <= now`, linear revocation, dan cascading invalidation saat email berubah.
+- Dokumen audit statis lengkap diterbitkan di `docs/AUDIT_AUTH_SESI_JST-003.md`.
+- Tidak ada perubahan source code, manifest `appsscript.json`, atau dependensi baru.
+- Audit rahasia: tidak ada token, password, ID produksi, atau data sensitif dimasukkan ke repository.
+- Status diubah menjadi `REVIEW`.
 
 #### Catatan review
 
-Approval audit telah diberikan pengguna pada 2026-08-25, namun pelaksanaan ditunda agar review akhir `JST-008` dan `JST-009` diselesaikan terlebih dahulu tanpa mencampur perubahan pada working tree `feat/JST-008-profil-histori-email`. Belum ada izin mengubah source, commit, merge, atau deploy.
+Audit statis selesai dan approval akhir diterima pada 2026-08-25. Status menjadi `DONE`. Rekomendasi perbaikan dirangkum pada laporan `docs/AUDIT_AUTH_SESI_JST-003.md`. Tidak mencakup commit, merge, atau deployment.
 
 ### JST-004 — Validasi upload server-side
 
