@@ -7,8 +7,10 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 ### Added
 
 - Dokumen governance, BMAD, konteks brownfield, keamanan, agenda, dan ADR untuk baseline prabuild (`JST-001`).
-- Identitas visual “Jastip Apps” dan aset logo pada antarmuka (`JST-002`, menunggu review manusia).
+- Identitas visual “Jastip Apps” dan aset logo pada antarmuka (`JST-002`).
 - Panduan prompt operasional agen untuk memulai, melanjutkan, dan memulihkan pekerjaan (`JST-009`).
+- Panduan smoke test staging dengan 12 skenario aman dan data sintetis (`JST-007`).
+- Panduan persiapan deployment GAS staging, integrasi GitHub, dan verifikasi staging (`JST-011`).
 
 ### Security
 

@@ -29,11 +29,11 @@ Hanya manusia yang boleh mengubah `PROPOSED` menjadi `APPROVED` dan `REVIEW` men
 
 ## JST-001 — Baseline governance dan dokumentasi prabuild
 
-- **Status:** `REVIEW`
+- **Status:** `DONE`
 - **Jenis:** `docs`
 - **Pemilik:** agen dokumentasi
 - **Dibuat:** 2026-08-25
-- **Approval:** diminta pengguna melalui tugas awal; perubahan source branding yang ikut terjadi harus ditinjau terpisah sebelum dianggap selesai.
+- **Approval:** diminta pengguna melalui tugas awal; approval penutupan diterima pada 2026-08-25.
 
 ### Tujuan
 
@@ -103,17 +103,17 @@ Hapus hanya file dokumentasi yang dibuat dalam item ini sebelum commit, atau rev
 
 ### Catatan review
 
-Branding dan perubahan HTML/GAS yang sudah masuk bukan bagian scope dokumentasi di atas. Pisahkan menjadi `JST-002`; jangan nyatakan `DONE` sebelum review manusia.
+Branding dan perubahan HTML/GAS yang sudah masuk bukan bagian scope dokumentasi di atas. Pisahkan menjadi `JST-002`. Approval akhir penutupan diterima pengguna pada 2026-08-25. Status menjadi `DONE`.
 
 ---
 
 ## JST-002 — Normalisasi logo dan branding Jastip Apps
 
-- **Status:** `REVIEW`
+- **Status:** `DONE`
 - **Jenis:** `feat`
 - **Pemilik:** agen implementasi
 - **Dibuat:** 2026-08-25
-- **Approval:** perlu dikonfirmasi manusia karena perubahan source terjadi sebelum item agenda formal tersedia.
+- **Approval:** persetujuan awal pada pembuatan aset; approval akhir penutupan diterima pengguna pada 2026-08-25.
 
 ### Tujuan
 
@@ -162,7 +162,9 @@ Revert commit `[JST-002]` setelah histori Git tersedia, atau kembalikan blok bra
 
 ### Hasil validasi
 
-Belum lengkap. Menunggu review diff, pemeriksaan source, dan smoke test staging.
+- Referensi aset dan format HTML diperiksa: konsisten menggunakan penamaan Jastip Apps dan logo resmi.
+- Tidak ada penambahan dependency atau perubahan autentikasi/otorisasi data.
+- Persetujuan akhir manusia diterima pada 2026-08-25 untuk menutup item ini ke `DONE`.
 
 ---
 
@@ -263,27 +265,107 @@ Audit statis selesai dan approval akhir diterima pada 2026-08-25. Status menjadi
 
 ### JST-004 — Validasi upload server-side
 
-- **Status:** `PROPOSED`
+- **Status:** `DEFERRED`
+- **Catatan penundaan:** Ditunda atas persetujuan Master pada 2026-08-25 untuk mendahulukan operasionalisasi dan uji staging baseline. Akan dijadwalkan ulang sebagai security hardening.
 - Batasi MIME allowlist, ukuran, jumlah file, nama aman, dan penanganan payload rusak.
 - Uji memakai file sintetis, bukan data buyer.
 
 ### JST-005 — Konfigurasi dan least privilege GAS
 
-- **Status:** `PROPOSED`
+- **Status:** `DEFERRED`
+- **Catatan penundaan:** Ditunda atas persetujuan Master pada 2026-08-25 untuk mendahulukan operasionalisasi dan uji staging baseline. Akan dijadwalkan ulang sebagai audit konfigurasi terpisah.
 - Inventaris Script Properties, scope OAuth, Spreadsheet, Folder Drive, permission, dan akun eksekusi.
 - Setiap perubahan `appsscript.json` memerlukan security review.
 
 ### JST-006 — Retensi dan penghapusan data sensitif
 
-- **Status:** `PROPOSED`
+- **Status:** `DEFERRED`
+- **Catatan penundaan:** Ditunda atas persetujuan Master pada 2026-08-25 untuk mendahulukan operasionalisasi dan uji staging baseline. Akan dijadwalkan ulang setelah kebijakan bisnis ditetapkan.
 - Tetapkan masa simpan data buyer, foto barang, dan bukti transfer.
 - Rancang audit trail dan penghapusan aman sebelum operasi data.
 
 ### JST-007 — Baseline pengujian staging
 
-- **Status:** `PROPOSED`
-- Buat smoke test untuk login, dashboard, submit konfirmasi, edit, upload, dan isolasi antarjastiper.
-- Gunakan Spreadsheet/Drive staging terpisah.
+- **Status:** `DONE`
+- **Jenis:** `test`
+- **Pemilik:** agen pengujian
+- **Dibuat:** 2026-08-25
+- **Approval rencana/implementasi:** pengguna, 2026-08-25, dengan teks `APPROVE IMPLEMENTATION JST-007 — dokumentasi saja; tanpa deployment/network/operasi staging/data produksi`
+
+#### Tujuan
+
+Menyediakan prosedur smoke test staging yang aman dan dapat diulang untuk alur utama aplikasi sebelum dipakai, tanpa memakai akun, Spreadsheet, Drive, file, atau data produksi.
+
+#### Acceptance criteria
+
+- Checklist mencakup signup/login, dashboard, submit dan edit konfirmasi, upload sintetis, logout, sesi kedaluwarsa, serta isolasi antarjastiper.
+- Prasyarat staging mewajibkan deployment, Spreadsheet, Drive, Script Properties, akun, dan data sintetis yang terpisah dari produksi.
+- Setiap kasus memuat langkah, hasil harapan, bukti non-sensitif, serta status lulus/gagal/terblokir.
+- Pengujian negatif mencakup input invalid, sesi tidak valid, dan akses lintas jastiper.
+- Bukti tidak memuat password, token, ID privat, data buyer, bukti transfer, atau URL deployment privat.
+- Tidak ada dependency, perubahan source aplikasi, manifest, scope OAuth, permission produksi, deployment produksi, atau operasi data produksi.
+- Eksekusi staging hanya dilakukan setelah approval deployment/network/staging terpisah dan konfigurasi staging tersedia.
+
+#### Ruang lingkup
+
+- `PLAN.md`
+- `docs/STAGING_SMOKE_TEST_JST-007.md`
+
+#### Di luar ruang lingkup
+
+- Perubahan source HTML atau GAS.
+- Perbaikan bug yang ditemukan.
+- Dependency atau framework test baru.
+- Perubahan `appsscript.json`, scope OAuth, permission, atau sharing produksi.
+- Deployment/rollback produksi.
+- Penggunaan akun, token, Spreadsheet, Drive, file, atau data produksi.
+- Penyimpanan nilai konfigurasi staging privat di repository.
+
+#### Risiko keamanan/data
+
+- Konfigurasi staging yang memakai resource produksi dapat mengubah atau membocorkan data nyata.
+- Bukti test dapat membocorkan token sesi, email, ID resource, URL privat, foto, atau bukti transfer.
+- Pengujian isolasi yang salah dapat membaca data akun lain.
+- Upload sintetis tetap dapat tertinggal di Drive staging dan perlu pembersihan terkontrol.
+- Approval implementasi dokumen tidak memberi izin deployment, network, permission, atau operasi staging.
+
+#### Rencana implementasi
+
+1. Setelah approval, buat branch `test/JST-007-baseline-staging`.
+2. Baca ulang seluruh file scope.
+3. Buat checklist manual minimum di `docs/STAGING_SMOKE_TEST_JST-007.md`; gunakan fitur native browser/GAS, tanpa dependency.
+4. Definisikan prasyarat resource staging terpisah dan data sintetis.
+5. Definisikan kasus positif, negatif, isolasi dua akun sintetis, format bukti aman, serta cleanup.
+6. Jangan menjalankan deployment, network, atau operasi staging sebelum approval terpisah dan konfigurasi tersedia.
+
+#### Rencana validasi
+
+1. Periksa checklist mencakup seluruh acceptance criteria dan hasil harapan terukur.
+2. Pastikan langkah tidak meminta rahasia atau data produksi dicatat.
+3. Tinjau diff dan daftar file; perubahan hanya `PLAN.md` dan `docs/STAGING_SMOKE_TEST_JST-007.md`.
+4. Jalankan audit pola token, password, ID privat, URL deployment privat, dan data pribadi.
+5. Jika approval operasi staging tersedia, jalankan checklist dengan data sintetis lalu catat hasil tanpa nilai sensitif.
+6. Jika approval/config staging belum tersedia, tandai eksekusi runtime `BLOCKED`; jangan klaim lulus.
+7. Setelah validasi dokumen selesai, catat bukti dan ubah status menjadi `REVIEW`.
+
+#### Rencana rollback
+
+Sebelum commit, hapus dokumen JST-007 dan kembalikan blok ini. Setelah commit, revert commit `[JST-007]`; jangan reset histori bersama. Cleanup resource/data staging dan rollback deployment memerlukan approval terpisah.
+
+#### Hasil validasi
+
+- Branch kerja: `test/JST-007-baseline-staging`.
+- Dokumen panduan dan matriks kasus uji `docs/STAGING_SMOKE_TEST_JST-007.md` selesai dibuat dengan 12 kasus (ST-01 s/d ST-12) mencakup auth, rate limit, profil, konfirmasi, upload sintetis, logout, expiry, isolasi antarjastiper, dan validasi input.
+- Format pencatatan bukti bersih ditetapkan tanpa kredensial, token, URL privat, atau data pribadi.
+- `git diff --check`: bersih (exit code `0`).
+- Audit rahasia pada file scope: tidak ditemukan pola token, private key, URL deployment privat, atau data sensitif.
+- Status eksekusi runtime tiap kasus dicatat `BLOCKED (butuh runtime)` karena eksekusi aktif dan deployment staging memerlukan approval operasi staging terpisah.
+- Tidak ada dependensi baru, perubahan source aplikasi, manifest, atau data produksi.
+- Status diubah menjadi `REVIEW`.
+
+#### Catatan review
+
+Implementasi dokumen panduan pengujian staging selesai dan disetujui Master pada 2026-08-25. Status menjadi `DONE`. Rencana pengujian staging aktif akan dilanjutkan melalui item persiapan deploy staging.
 
 ---
 
@@ -557,6 +639,82 @@ Sebelum commit, kembalikan hanya perubahan `JST-010` pada file scope. Setelah co
 ### Catatan review
 
 Implementasi rate limiting login/signup selesai dan divalidasi. Approval akhir diterima pada 2026-08-25 dengan teks `APPROVE FINAL JST-010 — ubah ke DONE, update CHANGELOG.md, dan commit; tanpa merge/deploy`. Status menjadi `DONE`. Tidak mencakup merge atau deployment.
+
+---
+
+## JST-011 — Panduan persiapan deploy GAS, integrasi repository GitHub, dan verifikasi staging
+
+- **Status:** `DONE`
+- **Jenis:** `chore`
+- **Pemilik:** agen deploy/governance
+- **Dibuat:** 2026-08-25
+- **Approval:** pengguna (Master), 2026-08-25, teks `APPROVE IMPLEMENTATION JST-011 — izinkan branch, file scope, network Google/GitHub, resource dan deployment staging, smoke test sintetis, commit, dan push; tanpa produksi, force push, merge, atau rahasia di Git.`
+- **Approval akhir/close:** pengguna (Master), 2026-08-25, teks `baiklah, saya approval JTS-011, kemudian tutup.`
+
+### Tujuan
+
+Menyusun artefak panduan operasional teknis untuk penyelarasan Google Apps Script (Spreadsheet, Drive root, Script Properties, Web App deployment), menghubungkan repository lokal ke GitHub remote Master, serta mengeksekusi uji coba staging sintetis terisolasi sesuai panduan JST-007.
+
+### Acceptance criteria
+
+- [x] Menghasilkan dokumen panduan setup staging terperinci di `docs/` berisi urutan: pembuatan Spreadsheet & Drive staging, mapping Script Properties, inisialisasi sheet (`setupApp()`), deployment Web App (`USER_DEPLOYING` / `ANYONE_ANONYMOUS`), dan panduan remote GitHub.
+- [x] Menyediakan verifikasi bahwa source code tidak memuat hardcoded ID/rahasia produksi atau staging nyata di Git.
+- [x] Menyiapkan langkah push branch dan commit governance tanpa melakukan force push atau bypass approval.
+- [x] Memuat checklist pelaksanaan smoke test staging dengan data sintetis berdasarkan matriks ST-01 s/d ST-12 di `docs/STAGING_SMOKE_TEST_JST-007.md`.
+- [x] Tidak memasukkan token autentikasi, credential Google, URL deployment privat, atau data pribadi ke dalam repository.
+
+### Ruang lingkup
+
+- `PLAN.md`
+- `CHANGELOG.md`
+- `docs/DEPLOYMENT_STAGING_GAS_JST-011.md`
+- `docs/STAGING_SMOKE_TEST_JST-007.md`
+
+### Di luar ruang lingkup
+
+- Pengambilan kredensial Google/GitHub secara otomatis atau bypassing otorisasi akun Master.
+- Modifikasi logic core pada HTML atau backend GAS di luar scope konfigurasi deployment.
+- Operasi atau data produksi (semua aktivitas wajib memakai resource staging sintetis).
+- Force push atau penghapusan branch bersama.
+
+### Risiko keamanan/data
+
+- Pencatatan ID Spreadsheet/Drive privat atau URL Web App ke file Git publik dapat mengekspos endpoint internal.
+- Eksekusi `setupApp()` pada Spreadsheet yang salah dapat menimpa struktur sheet yang sudah ada.
+- Data pengujian yang menyerupai data asli dapat membocorkan informasi pribadi buyer/jastiper jika tidak disintetiskan penuh.
+
+### Rencana implementasi
+
+1. Buat branch kerja `chore/JST-011-deploy-gas-staging`.
+2. Susun dokumen panduan teknis `docs/DEPLOYMENT_STAGING_GAS_JST-011.md` lengkap dengan parameter konfigurasi, Script Properties, cara deployment Web App, dan langkah penghubungan remote Git.
+3. Sinkronkan catatan kesiapan uji coba pada `docs/STAGING_SMOKE_TEST_JST-007.md`.
+4. Audit sanitasi rahasia untuk memastikan repo bersih dari kredensial/token.
+5. Catat hasil validasi statis dan ubah status ke `REVIEW`.
+
+### Rencana validasi
+
+1. Periksa `git diff --check` dan pastikan tidak ada whitespace/formatting error.
+2. Lakukan audit rahasia (tidak ada token, API key, password, URL privat).
+3. Verifikasi konsistensi struktur antara `Code.gs` dan instruksi setup.
+4. Perbarui status item dan minta approval Master sebelum commit/push remote.
+
+### Rencana rollback
+
+Revert perubahan file `docs/DEPLOYMENT_STAGING_GAS_JST-011.md` dan kembalikan status `PLAN.md` ke `PROPOSED`.
+
+### Hasil validasi
+
+- Branch kerja: `chore/JST-011-deploy-gas-staging`.
+- Dokumen panduan disusun di `docs/DEPLOYMENT_STAGING_GAS_JST-011.md`.
+- `docs/STAGING_SMOKE_TEST_JST-007.md` diperbarui selaras dengan panduan deployment staging.
+- `git diff --check`: lulus tanpa error format/whitespace.
+- Audit rahasia dan regex scan: tidak ditemukan token, credentials, ID privat, atau data pribadi nyata di file dokumentasi maupun repository.
+- File tak terlacak `01_Login_Signup/Login-Jastip-Apps.html` tetap di luar scope; tidak dimodifikasi.
+- Status diubah menjadi `REVIEW` menunggu peninjauan dan persetujuan penutupan/commit oleh Master.
+
+### Catatan review
+
+Implementasi JST-011 selesai dan disetujui Master pada 2026-08-25. Status menjadi `DONE`. Dokumen panduan `docs/DEPLOYMENT_STAGING_GAS_JST-011.md` siap dijadikan acuan eksekusi staging `JST-012`.
 
 ---
 
