@@ -1,0 +1,113 @@
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+
+const rootDir = path.join(__dirname, '..');
+const codeGsPath = path.join(rootDir, '04_Backend_GAS', 'Code.gs');
+const loginHtmlPath = path.join(rootDir, '01_Login_Signup', 'Login.html');
+const dashboardHtmlPath = path.join(rootDir, '02_Dashboard_Jastiper', 'Dashboard.html');
+const konfirmasiHtmlPath = path.join(rootDir, '03_Konfirmasi_Pembelian', 'Konfirmasi.html');
+
+// 1. Read files
+const codeGs = fs.readFileSync(codeGsPath, 'utf8');
+const loginHtml = fs.readFileSync(loginHtmlPath, 'utf8');
+const dashboardHtml = fs.readFileSync(dashboardHtmlPath, 'utf8');
+const konfirmasiHtml = fs.readFileSync(konfirmasiHtmlPath, 'utf8');
+
+// 2. Syntax validation Code.gs
+const script = new vm.Script(codeGs);
+assert.ok(script, 'Code.gs syntax check OK');
+
+// 3. Check manual top-navigation links use trusted server-bound URL
+assert.ok(loginHtml.includes('const webAppUrl = "<?= typeof webAppUrl !== \'undefined\' ? webAppUrl : \'\' ?>";'), 'Login.html has webAppUrl');
+assert.ok(loginHtml.includes('id="navManualLink"'), 'Login.html has manual navigation link');
+assert.ok(loginHtml.includes('target="_top"'), 'Login.html manual link targets top');
+assert.ok(loginHtml.includes("showManualNav('dashboard', 'Buka Dashboard')"), 'Login.html shows Dashboard link after auth');
+assert.ok(!loginHtml.includes('.click();'), 'Login.html has no programmatic navigation click');
+assert.ok(!loginHtml.includes('function navigatePage(page)'), 'Login.html has no automatic navigation helper');
+
+assert.ok(dashboardHtml.includes('const webAppUrl = "<?= typeof webAppUrl !== \'undefined\' ? webAppUrl : \'\' ?>";'), 'Dashboard.html has webAppUrl');
+assert.ok(dashboardHtml.includes('id="navManualLink"'), 'Dashboard.html has manual navigation link');
+assert.ok(dashboardHtml.includes('target="_top"'), 'Dashboard.html manual link targets top');
+assert.ok(dashboardHtml.includes("showManualNav('login', 'Kembali ke Login')"), 'Dashboard.html shows Login link after logout/session failure');
+assert.ok(!dashboardHtml.includes('.click();'), 'Dashboard.html has no programmatic navigation click');
+assert.ok(!dashboardHtml.includes('function navigatePage(page)'), 'Dashboard.html has no automatic navigation helper');
+
+// 4. Test doGet in vm sandbox
+const fakePropertiesService = {
+  getScriptProperties: () => ({
+    getProperty: (k) => '1234567890abcdefghij-1234567890'
+  })
+};
+
+const fakeScriptApp = {
+  getService: () => ({
+    getUrl: () => 'https://script.google.com/macros/s/STAGING_ID/exec'
+  })
+};
+
+const evaluatedTemplates = [];
+
+const fakeHtmlService = {
+  createTemplateFromFile: (filename) => {
+    return {
+      evaluate: function() {
+        evaluatedTemplates.push({
+          filename,
+          webAppUrl: this.webAppUrl
+        });
+        return {
+          setTitle: () => ({
+            setXFrameOptionsMode: () => ({})
+          })
+        };
+      }
+    };
+  },
+  XFrameOptionsMode: {
+    ALLOWALL: 'ALLOWALL'
+  }
+};
+
+const sandbox = {
+  PropertiesService: fakePropertiesService,
+  ScriptApp: fakeScriptApp,
+  HtmlService: fakeHtmlService,
+  SpreadsheetApp: {},
+  DriveApp: {},
+  LockService: {},
+  CacheService: {},
+  Session: {},
+  Utilities: {},
+  console
+};
+
+vm.createContext(sandbox);
+vm.runInContext(codeGs, sandbox);
+
+// Test doGet without page param (defaults to Konfirmasi buyer form)
+sandbox.doGet({});
+assert.strictEqual(evaluatedTemplates.length, 1);
+assert.strictEqual(evaluatedTemplates[0].filename, 'Konfirmasi');
+assert.strictEqual(evaluatedTemplates[0].webAppUrl, 'https://script.google.com/macros/s/STAGING_ID/exec');
+
+// Test doGet with page=dashboard
+sandbox.doGet({ parameter: { page: 'dashboard' } });
+assert.strictEqual(evaluatedTemplates.length, 2);
+assert.strictEqual(evaluatedTemplates[1].filename, 'Dashboard');
+assert.strictEqual(evaluatedTemplates[1].webAppUrl, 'https://script.google.com/macros/s/STAGING_ID/exec');
+
+// Test doGet with page=login
+sandbox.doGet({ parameter: { page: 'login' } });
+assert.strictEqual(evaluatedTemplates.length, 3);
+assert.strictEqual(evaluatedTemplates[2].filename, 'Login');
+assert.strictEqual(evaluatedTemplates[2].webAppUrl, 'https://script.google.com/macros/s/STAGING_ID/exec');
+
+// Test doGet with page=account
+sandbox.doGet({ parameter: { page: 'account' } });
+assert.strictEqual(evaluatedTemplates.length, 4);
+assert.strictEqual(evaluatedTemplates[3].filename, 'Login');
+assert.strictEqual(evaluatedTemplates[3].webAppUrl, 'https://script.google.com/macros/s/STAGING_ID/exec');
+
+console.log('JST-017 auth navigation unit check passed.');

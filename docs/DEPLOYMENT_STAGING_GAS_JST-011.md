@@ -41,10 +41,13 @@ Dokumen ini menyediakan panduan operasional langkah demi langkah untuk deploymen
    - Di menu sebelah kiri editor GAS, klik ikon **Project Settings** (roda gigi).
    - Centang opsi `"Show "appsscript.json" manifest file in editor"`.
    - Kembali ke tab editor (ikon `< >`), buka file `appsscript.json`, dan ganti isinya dengan isi file `04_Backend_GAS/appsscript.json`.
-2. **Backend Script (`Code.gs`)**:
+2. **Backend Script (`Code.gs`) & Script Properties**:
    - Buka file `Code.gs` di editor GAS.
-   - Salin seluruh isi dari `04_Backend_GAS/Code.gs` dan simpan.
-   - Perbarui konstanta `SPREADSHEET_ID` dan `DRIVE_ROOT_FOLDER_ID` pada baris awal `Code.gs` dengan ID staging yang diperoleh dari Bagian A (atau gunakan Script Properties jika didukung).
+   - Salin seluruh isi dari `04_Backend_GAS/Code.gs` dan simpan. Script membaca `SPREADSHEET_ID` dan `DRIVE_ROOT_FOLDER_ID` melalui `PropertiesService.getScriptProperties()`.
+   - Di editor GAS, buka **Project Settings** (roda gigi) -> **Script Properties** -> **Add script property**.
+   - Tambahkan `SPREADSHEET_ID` dengan nilai ID Spreadsheet staging.
+   - Tambahkan `DRIVE_ROOT_FOLDER_ID` dengan nilai ID folder Drive staging.
+   - Klik **Save script properties**. Jangan menulis nilai ID ke source atau file yang terlacak Git.
 3. **File Antarmuka HTML**:
    - Di editor GAS, klik tombol **+** di samping Files -> pilih **HTML**.
    - Buat 3 file HTML berikut dengan menyalin isi file lokal:

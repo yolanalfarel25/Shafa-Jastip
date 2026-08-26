@@ -11,6 +11,7 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 - Panduan prompt operasional agen untuk memulai, melanjutkan, dan memulihkan pekerjaan (`JST-009`).
 - Panduan smoke test staging dengan 12 skenario aman dan data sintetis (`JST-007`).
 - Panduan persiapan deployment GAS staging, integrasi GitHub, dan verifikasi staging (`JST-011`).
+- Provisioning resource staging backend GAS, inisialisasi sheet database via `setupApp()`, dan deployment Web App staging (`JST-012`).
 
 ### Security
 

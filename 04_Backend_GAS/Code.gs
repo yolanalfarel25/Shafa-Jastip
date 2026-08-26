@@ -1,6 +1,4 @@
 const CONFIG = {
-  SPREADSHEET_ID: 'PASTE_SPREADSHEET_ID_HERE',
-  DRIVE_ROOT_FOLDER_ID: 'PASTE_DRIVE_ROOT_FOLDER_ID_HERE',
   ORDERS_SHEET: 'Konfirmasi Jastip v4',
   USERS_SHEET: 'Jastipers',
   SESSIONS_SHEET: 'Sessions',
@@ -43,7 +41,10 @@ function doGet(e) {
     title = 'Dashboard Jastiper';
   }
 
-  return HtmlService.createTemplateFromFile(fileName)
+  const template = HtmlService.createTemplateFromFile(fileName);
+  template.webAppUrl = ScriptApp.getService().getUrl();
+
+  return template
     .evaluate()
     .setTitle(title)
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -556,18 +557,26 @@ function ensureSheet_(name, headers) {
   return sh;
 }
 
-function getSpreadsheet_() {
-  if (CONFIG.SPREADSHEET_ID.indexOf('PASTE_') === 0) {
-    throw new Error('CONFIG.SPREADSHEET_ID belum diisi.');
+function getRequiredResourceConfig_(name) {
+  const value = String(
+    PropertiesService.getScriptProperties().getProperty(name) || ''
+  ).trim();
+  if (!/^[a-zA-Z0-9_-]{20,}$/.test(value) || value.indexOf('PASTE_') === 0) {
+    throw new Error('Konfigurasi resource server belum valid.');
   }
-  return SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  return value;
+}
+
+function getSpreadsheet_() {
+  return SpreadsheetApp.openById(
+    getRequiredResourceConfig_('SPREADSHEET_ID')
+  );
 }
 
 function getRootFolder_() {
-  if (CONFIG.DRIVE_ROOT_FOLDER_ID.indexOf('PASTE_') === 0) {
-    throw new Error('CONFIG.DRIVE_ROOT_FOLDER_ID belum diisi.');
-  }
-  return DriveApp.getFolderById(CONFIG.DRIVE_ROOT_FOLDER_ID);
+  return DriveApp.getFolderById(
+    getRequiredResourceConfig_('DRIVE_ROOT_FOLDER_ID')
+  );
 }
 
 function getOrdersSheet_() { return ensureSheet_(CONFIG.ORDERS_SHEET, ORDER_HEADERS); }

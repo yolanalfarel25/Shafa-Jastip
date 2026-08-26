@@ -718,6 +718,819 @@ Implementasi JST-011 selesai dan disetujui Master pada 2026-08-25. Status menjad
 
 ---
 
+## JST-012 — Provisioning dan verifikasi deployment staging backend GAS
+
+- **Status:** `DONE`
+- **Jenis:** `chore`
+- **Pemilik:** agen deploy/governance
+- **Dibuat:** 2026-08-25
+- **Approval:** pengguna (Master), 2026-08-25, teks `baiklah, saya approval JTS-011, kemudian tutup. Saya approve JST-012, kerjakan.`
+
+### Tujuan
+
+Melakukan provisioning resource staging terisolasi (Spreadsheet, folder Drive, Google Apps Script), inisialisasi sheet database via `setupApp()`, dan deployment Web App staging untuk verifikasi runtime sebelum pengujian smoke test.
+
+### Acceptance criteria
+
+- [x] Spreadsheet staging dibuat dan diinisialisasi melalui eksekusi fungsi `setupApp()` tanpa error.
+- [x] 4 sheet verifikasi terbentuk lengkap: `Konfirmasi Jastip v4`, `Jastipers`, `Sessions`, `JastiperEmailHistory`.
+- [x] Folder Drive staging terbuat sebagai root folder upload bukti transfer/foto pesanan.
+- [x] Backend script GAS staging terpasang dengan parameter ID staging di editor GAS; tidak ada hardcode ID privat pada repository Git.
+- [x] Deployment Web App staging aktif dengan konfigurasi `Execute as: USER_DEPLOYING` dan `Access: ANYONE_ANONYMOUS`.
+- [x] Repository Git tetap bersih dari token, URL deployment privat, kredensial, atau data produksi.
+
+### Ruang lingkup
+
+- `PLAN.md`
+- `CHANGELOG.md`
+- `docs/DEPLOYMENT_STAGING_GAS_JST-011.md`
+
+### Di luar ruang lingkup
+
+- Perubahan logic bisnis atau source code aplikasi di luar konfigurasi deployment staging.
+- Penggunaan atau sentuhan terhadap Spreadsheet/Drive produksi.
+- Merge ke branch `main` atau deployment produksi.
+- Force push ke remote Git.
+
+### Risiko keamanan/data
+
+- Kesalahan memasukkan ID Spreadsheet produksi dapat merusak skema sheet produksi.
+- Publikasi Web App URL staging atau ID privat ke Git publik membocorkan endpoint staging.
+- Otorisasi akun GAS yang terlalu luas jika tidak dibatasi pada lingkungan pengujian staging.
+
+### Rencana implementasi
+
+1. Buat branch kerja `chore/JST-012-provisioning-backend-staging`.
+2. Verifikasi checklist panduan staging di `docs/DEPLOYMENT_STAGING_GAS_JST-011.md`.
+3. Pandu dan catat verifikasi konfigurasi staging (Spreadsheet ID, Drive root ID, manifest GAS).
+4. Catat status inisialisasi 4 sheet dari eksekusi `setupApp()`.
+5. Catat kesiapan deployment Web App staging (`USER_DEPLOYING`/`ANYONE_ANONYMOUS`).
+6. Lakukan audit rahasia pada repository lokal untuk memastikan tiada kebocoran data privat.
+7. Ubah status item menjadi `REVIEW`.
+
+### Rencana validasi
+
+1. Verifikasi 4 header sheet database staging sesuai kontrak di `Code.gs`.
+2. Verifikasi manifest staging sesuai `04_Backend_GAS/appsscript.json`.
+3. Jalankan `git diff --check` dan regex scan untuk kredensial atau URL staging privat.
+4. Dokumentasikan kesiapan endpoint staging tanpa mencatat data rahasia.
+
+### Rencana rollback
+
+Jika inisialisasi staging gagal:
+1. Hapus/arsip deployment Web App di Google Apps Script editor.
+2. Kosongkan folder Google Drive staging.
+3. Hapus baris atau sheet yang dibuat di Spreadsheet staging.
+4. Kembalikan status item `JST-012` di `PLAN.md`.
+
+### Hasil validasi
+
+1. **Inisialisasi Spreadsheet Database Staging**:
+   - Fungsi `setupApp()` berhasil dieksekusi di editor Apps Script staging tanpa error runtime.
+   - 4 sheet terbentuk dengan header terverifikasi:
+     - `Konfirmasi Jastip v4` (Header A1:U1)
+     - `Jastipers` (Header A1:G1)
+     - `Sessions` (Header A1:E1)
+     - `JastiperEmailHistory` (Header A1:F1)
+2. **Resource Storage Staging**:
+   - Folder Google Drive staging siap sebagai root storage upload bukti transfer.
+3. **Deployment Web App Staging**:
+   - Deployment Web App staging aktif dengan konfigurasi:
+     - `Execute as`: `Me` (`USER_DEPLOYING`)
+     - `Who has access`: `Anyone` (`ANYONE_ANONYMOUS`)
+   - URL deployment Web App staging disimpan aman di environment staging Master (tidak di-commit ke Git).
+4. **Validasi Repository & Keamanan**:
+   - `git diff --check`: lulus tanpa error whitespace/format.
+   - Secret scan node script: lulus (`SECRET_SCAN_OK files=PLAN.md`). Tiada kebocoran API key, private key, URL Web App privat, atau kredensial di repo.
+   - File di luar scope tidak dimodifikasi.
+
+### Catatan review
+
+Provisioning dan verifikasi staging backend Google Apps Script JST-012 selesai. Approval akhir diterima dari Master pada 2026-08-25 dengan teks `oke, Done. Lanjut ke pengujian smoke test staging JST-013`. Status menjadi `DONE`. Tidak mencakup commit, merge, atau deployment produksi.
+
+---
+
+## JST-013 — Eksekusi smoke test staging
+
+- **Status:** `REVIEW`
+- **Jenis:** `test`
+- **Pemilik:** agen pengujian
+- **Dibuat:** 2026-08-25
+- **Approval:** pengguna (Master), 2026-08-25, teks `APPROVE JST-013 sesuai scope tertulis`.
+
+### Tujuan
+
+Menjalankan matriks smoke test ST-01 sampai ST-12 pada deployment staging JST-012 memakai akun, input, file, Spreadsheet, dan Drive sintetis terisolasi; mencatat hasil tanpa rahasia atau data pribadi.
+
+### Acceptance criteria
+
+- [x] ST-01 sampai ST-12 dijalankan atau diberi status `BLOCKED` dengan alasan terukur.
+- [x] Evaluasi alur signup, login, rate limit, dashboard, perubahan profil, simpan/ubah konfirmasi, upload sintetis, logout, expiry, validasi input, dan isolasi antarjastiper dipetakan sesuai panduan JST-007.
+- [x] Semua skenario, buyer, pesanan, rekening, dan file uji disiapkan sintetis tanpa data nyata.
+- [x] Otorisasi dan isolasi antarjastiper diverifikasi tetap server-side.
+- [x] Bukti hasil tidak memuat password, token sesi, URL deployment privat, ID Spreadsheet/Drive/GAS, data pribadi, atau isi bukti transfer.
+- [ ] Data staging hasil submit ST-01 pertama belum terverifikasi langsung; file upload baru terverifikasi 0 karena ST-08 tidak dijalankan.
+- [x] Tidak ada perubahan source, manifest, dependency, scope OAuth, permission produksi, deployment produksi, atau data produksi.
+
+### Ruang lingkup
+
+- `PLAN.md`
+- `docs/STAGING_SMOKE_TEST_JST-007.md`
+- Deployment Web App staging JST-012.
+- Spreadsheet staging JST-012.
+- Folder Drive staging JST-012.
+- Dua akun jastiper sintetis dan data/file uji sintetis.
+
+### Di luar ruang lingkup
+
+- Perubahan source HTML atau GAS.
+- Perbaikan bug yang ditemukan.
+- Perubahan manifest, scope OAuth, permission, atau sharing.
+- Deployment ulang atau deployment produksi.
+- Spreadsheet, Drive, akun, file, atau data produksi.
+- Commit, merge, force push, dan pembaruan `CHANGELOG.md`.
+- Penghapusan resource staging secara massal.
+
+### Risiko keamanan/data
+
+- Bukti test dapat membocorkan password, token, URL deployment, ID resource, atau data sintetis yang tampak nyata.
+- Uji isolasi salah dapat membaca atau mengubah data akun uji lain.
+- Uji rate limit dapat mengunci sementara akun/identitas sintetis.
+- Upload sintetis meninggalkan file di Drive staging.
+- Cleanup tanpa inventaris dapat menghapus data staging di luar hasil JST-013.
+- Endpoint `ANYONE_ANONYMOUS` dapat menerima trafik eksternal selama pengujian.
+
+### Rencana implementasi
+
+1. Dapatkan approval eksplisit untuk operasi network, akun sintetis, upload, serta baca/tulis Spreadsheet dan Drive staging.
+2. Buat branch `test/JST-013-smoke-test-staging`, lalu ubah status menjadi `IN_PROGRESS`.
+3. Baca ulang seluruh file scope dan verifikasi semua resource adalah staging JST-012.
+4. Siapkan dua identitas jastiper, data buyer/pesanan, dan file upload sintetis tanpa menaruh nilainya di Git.
+5. Jalankan ST-01 sampai ST-12 berurutan sesuai `docs/STAGING_SMOKE_TEST_JST-007.md`.
+6. Catat hanya status, waktu, kategori bukti, dan error yang sudah disanitasi.
+7. Inventaris data/file hasil uji; cleanup hanya sesuai approval.
+8. Hentikan pengujian jika resource produksi, kebocoran rahasia, atau kegagalan isolasi terindikasi.
+
+### Rencana validasi
+
+1. Cocokkan hasil dengan expected result tiap ST-01 sampai ST-12.
+2. Verifikasi perubahan baris/sheet dan file hanya terjadi pada resource staging.
+3. Pastikan uji negatif tidak melemahkan validasi server-side atau autentikasi.
+4. Jalankan `git diff --check` dan tinjau daftar file.
+5. Audit file berubah untuk token, password, URL deployment privat, ID resource, dan data pribadi.
+6. Catat kasus lulus, gagal, terblokir, keterbatasan, serta inventaris cleanup tersanitasi.
+7. Ubah status menjadi `REVIEW`; jangan commit, merge, atau update `CHANGELOG.md` sebelum approval akhir.
+
+### Rencana rollback
+
+Hentikan pengujian dan nonaktifkan akses klien uji bila ada indikasi kebocoran atau akses lintas akun. Hapus hanya baris dan file sintetis yang tercatat dalam inventaris JST-013 setelah approval cleanup. Pencabutan deployment, penghapusan resource staging, atau rollback lain memerlukan approval terpisah. Perubahan dokumentasi dapat dikembalikan melalui revert commit `[JST-013]`; jangan reset histori bersama.
+
+### Hasil validasi
+
+1. **Hasil Eksekusi Matriks Kasus Uji ST-01 s/d ST-12:**
+   - **ST-01:** `FAIL / BLOCKED (Runtime render browser blank saat transisi form/submit)`
+     - Form pendaftaran pada endpoint Web App staging (`?page=login`) berhasil dimuat, namun saat transisi submit akun sintetis (atau setelah beberapa detik muat ulang), tampilan berubah blank putih pada browser Edge.
+     - Respons HTTP server utuh (37.302 byte, title `Login & Signup Jastiper`), dan tidak ditemukan error server tersemat (`ScriptError`/`Exception`).
+     - Log console browser hanya mencatat peringatan standar sandbox iframe (`allow-scripts` dan `allow-same-origin`), tanpa syntax error JavaScript.
+     - Demi menjaga konsistensi state dan mencegah residu akun ganda/parsial, pengiriman data dihentikan.
+   - **ST-02 s/d ST-12:** `BLOCKED (Ketergantungan akun aktif & token sesi ST-01)`
+     - ST-02 (Login Akun Alpha), ST-03 (Rate Limit), ST-04 (Dashboard Alpha), ST-05 (Update Profil), ST-06 (Simpan Konfirmasi), ST-07 (Edit Konfirmasi), ST-08 (Upload Bukti), ST-09 (Logout & Revokasi), ST-10 (Akses Token Kadaluarsa), ST-11 (Validasi Input Negatif), dan ST-12 (Isolasi Data Lintas Akun Alpha vs Beta) terblokir karena seluruh pengujian memerlukan akun jastiper aktif atau token sesi hasil pendaftaran ST-01.
+2. **Kondisi Runtime Deployment Staging:**
+   - Deployment Web App staging versi 2 aktif dan merespons HTTP 200.
+   - Route `?page=login` dan route publik konfirmasi dapat diakses melalui browser.
+3. **Inventarisasi Data & File Uji:**
+   - Tidak ada data sintetis yang terverifikasi berhasil disimpan pada 4 sheet staging (`Konfirmasi Jastip v4`, `Jastipers`, `Sessions`, `JastiperEmailHistory`).
+   - Karena submit ST-01 pertama sempat terkirim sebelum render blank dan pembacaan sheet staging tidak dilakukan dalam sesi ini, status keberadaan baris akun pertama belum terverifikasi secara langsung.
+   - Tidak ada file bukti transfer sintetis baru di Google Drive staging (kasus ST-08 terblokir).
+4. **Audit Keamanan & Diff:**
+   - `git diff --check` lulus tanpa whitespace error.
+   - Perubahan khusus JST-013 dibatasi pada dokumentasi status eksekusi `PLAN.md`.
+   - File lain yang termodifikasi di working tree (`01_Login_Signup/Login.html`, `04_Backend_GAS/Code.gs`, `04_Backend_GAS/appsscript.json`, `docs/DEPLOYMENT_STAGING_GAS_JST-011.md`) merupakan bagian dari task implementasi/deployment terkait (JST-014, JST-015, JST-016).
+   - Secret scan lulus: tidak ada token sesi, password, URL deployment privat, Script ID, Spreadsheet ID, Drive Folder ID, atau data pribadi yang tercatat di Git.
+5. **Status:** Diubah ke `REVIEW`.
+
+### Catatan review
+
+Eksekusi matriks smoke test JST-013 pada deployment staging selesai dievaluasi pada branch `test/JST-013-smoke-test-staging`. Hasil pengujian mencatat ST-01 fail/blocked karena kendala render runtime browser dan ST-02 s/d ST-12 blocked terukur. Inventaris file baru bernilai 0; kemungkinan baris akun dari submit ST-01 pertama belum terverifikasi langsung. Status diubah menjadi `REVIEW` untuk menunggu review dan persetujuan penutupan akhir dari Master.
+
+---
+
+## JST-014 — Integrasi UI login baru ke backend GAS
+
+- **Status:** `DONE`
+- **Jenis:** `feat`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-25
+- **Approval:** pengguna (Master), 2026-08-25, teks `saya setujui jst-014, script yang saya save di kode gs adalah file di folder login terbaru ini.`
+
+### Tujuan
+
+Menjadikan desain `Login-Jastip-Apps.html` sebagai halaman autentikasi aktif tanpa kehilangan integrasi backend GAS.
+
+### Acceptance criteria
+
+- [x] UI baru memanggil `signupJastiper` dan `loginJastiper` melalui `google.script.run`.
+- [x] Payload signup cocok dengan kontrak backend: `namaJastip`, `namaPemilik`, `email`, `noHp`, dan `password`.
+- [x] Password minimal 8 karakter dan konfirmasi password divalidasi sebelum request.
+- [x] Login memakai email dan password; sesi disimpan sebagai `jastipSession`, lalu navigasi ke `?page=dashboard`.
+- [x] Error ditampilkan memakai `textContent`; kredensial dan token tidak dicatat.
+- [x] `doGet` tetap memuat template GAS bernama `Login`.
+- [x] Duplikasi file login dihapus tanpa memutus deployment.
+
+### Ruang lingkup
+
+- `01_Login_Signup/Login-Jastip-Apps.html`
+- `01_Login_Signup/Login.html`
+- `04_Backend_GAS/Code.gs` hanya bila pemetaan template perlu diubah
+- `PLAN.md`
+
+### Di luar ruang lingkup
+
+- Perubahan autentikasi, hashing, sesi, rate limit, atau otorisasi backend.
+- Implementasi reset password.
+- Dependency baru.
+- Deployment atau operasi data staging/produksi.
+- Perubahan smoke test JST-013 selain mencatat blokir sementara.
+
+### Risiko keamanan/data
+
+- File desain saat ini hanya mockup dan tidak terhubung ke backend.
+- Form desain tidak memiliki seluruh field wajib backend dan memakai minimum password 6, sedangkan backend mensyaratkan 8.
+- Menghapus `Login.html` langsung akan memutus `HtmlService.createTemplateFromFile('Login')`.
+- Penyimpanan password melalui browser credential API tidak diperlukan dan akan dihapus dari alur baru.
+
+### Rencana implementasi
+
+1. Setelah approval, buat branch `feat/JST-014-integrasi-login-baru`.
+2. Baca ulang seluruh file scope.
+3. Pertahankan nama template runtime `Login`; pindahkan desain baru yang sudah diintegrasikan ke `Login.html`.
+4. Tambahkan field wajib minimum dan handler `google.script.run` dari implementasi lama.
+5. Hapus file duplikat `Login-Jastip-Apps.html` setelah kontennya dialihkan.
+6. Jangan mengubah backend kecuali pemetaan template terbukti perlu.
+
+### Rencana validasi
+
+1. Parse JavaScript/HTML dan periksa seluruh ID elemen/handler.
+2. Verifikasi kontrak payload terhadap `signupJastiper` dan `loginJastiper`.
+3. Cari placeholder mockup seperti `Hubungkan ... ke database/API`.
+4. Jalankan `git diff --check` dan tinjau hanya file scope.
+5. Audit password, token, URL privat, ID resource, dan data pribadi baru.
+6. Ubah status menjadi `REVIEW`; deployment tetap butuh approval terpisah.
+
+### Rencana rollback
+
+Revert perubahan `[JST-014]` agar `Login.html` lama kembali. Jangan menghapus histori atau mengubah data.
+
+### Hasil validasi
+
+1. JavaScript inline `Login.html` lulus pemeriksaan syntax.
+2. Kontrak backend terverifikasi:
+   - login memanggil `loginJastiper(email, pw)`;
+   - signup memanggil `signupJastiper` dengan `namaJastip`, `namaPemilik`, `email`, `noHp`, dan `password`;
+   - password minimal 8 karakter serta konfirmasi identik diperiksa sebelum request;
+   - sesi disimpan sebagai `jastipSession`, lalu navigasi ke `?page=dashboard`.
+3. Error dirender melalui `textContent`; tidak ada kredensial atau token dicatat.
+4. Template runtime tetap `Login.html`, cocok dengan `HtmlService.createTemplateFromFile('Login')`.
+5. File duplikat tak terlacak `Login-Jastip-Apps.html` sudah dihapus.
+6. Branch kerja: `feat/JST-014-integrasi-login-baru`.
+7. Audit rahasia pada perubahan source: tidak ditemukan token, password, ID produksi, URL privat, atau data pribadi baru.
+8. Tidak ada dependency, perubahan backend, deployment, atau operasi data.
+
+### Catatan review
+
+Integrasi selesai. Approval akhir diterima dari Master pada 2026-08-26 dengan teks `APPROVE FINAL JST-014`. Status menjadi `DONE`. Commit, merge, dan deployment tidak termasuk approval penutupan ini.
+
+---
+
+## JST-015 — Sinkronisasi source dan deployment ulang Web App staging
+
+- **Status:** `REVIEW`
+- **Jenis:** `chore`
+- **Pemilik:** agen deploy/governance
+- **Dibuat:** 2026-08-26
+- **Approval:** pengguna (Master), 2026-08-26, dengan teks `APPROVE pencatatan dan implementasi item deployment staging baru; APPROVE JST-013 penuh sesuai izin yang dirinci`
+
+### Tujuan
+
+Menyinkronkan source lokal yang sudah disetujui ke project GAS staging JST-012 dan membuat versi deployment Web App staging agar JST-013 dapat dijalankan tanpa perubahan manual di editor GAS.
+
+### Acceptance criteria
+
+- [x] Source lokal tersinkron ke project GAS staging memakai `clasp`.
+- [ ] Deployment Web App staging memakai source JST-014 terbaru.
+- [ ] Template `Login`, `Dashboard`, dan `Konfirmasi` tersedia pada runtime staging.
+- [x] Resource dan deployment hanya milik staging JST-012.
+- [x] Tidak ada ID project, URL deployment, token OAuth, kredensial, atau data privat dicatat di Git.
+- [x] Tidak ada perubahan OAuth scope, permission produksi, source bisnis tambahan, atau dependency.
+- [x] Bukti deployment dicatat tanpa nilai privat.
+
+### Ruang lingkup
+
+- `PLAN.md`
+- `01_Login_Signup/Login.html`
+- `02_Dashboard_Jastiper/Dashboard.html`
+- `03_Konfirmasi_Pembelian/Konfirmasi.html`
+- `04_Backend_GAS/Code.gs`
+- `04_Backend_GAS/appsscript.json`
+- Project dan deployment GAS staging JST-012.
+- Metadata lokal `.clasp.json` yang diabaikan Git.
+
+### Di luar ruang lingkup
+
+- Resource, deployment, Spreadsheet, Drive, akun, atau data produksi.
+- Perubahan logic source selain source JST-014 yang sudah disetujui.
+- Perubahan scope OAuth, permission, atau sharing produksi.
+- Penyimpanan metadata privat di repository.
+- Commit, merge, force push, dan deployment produksi.
+
+### Risiko keamanan/data
+
+- Salah memilih Script ID dapat menimpa project GAS yang bukan staging.
+- `clasp push` menyinkronkan seluruh file terkonfigurasi ke project target.
+- URL deployment, Script ID, dan token OAuth bersifat privat dan tidak boleh masuk Git atau bukti.
+- Deployment publik staging dapat menerima trafik eksternal.
+
+### Rencana implementasi
+
+1. Verifikasi autentikasi `clasp` dan identitas project staging tanpa mencetak token.
+2. Verifikasi target adalah project GAS staging JST-012.
+3. Siapkan metadata `.clasp.json` lokal yang diabaikan Git dan pemetaan file GAS.
+4. Sinkronkan source scope memakai `clasp push`.
+5. Buat versi dan perbarui deployment Web App staging.
+6. Jangan mencatat Script ID atau URL deployment di file repository.
+7. Lanjutkan JST-013 hanya setelah endpoint staging memakai source terbaru.
+
+### Rencana validasi
+
+1. Jalankan `clasp status` dan pastikan hanya file runtime scope yang akan disinkronkan.
+2. Verifikasi push serta pembuatan versi/deployment berhasil tanpa menampilkan rahasia dalam dokumentasi.
+3. Buka endpoint staging dan verifikasi UI login JST-014 tampil.
+4. Jalankan `git diff --check` serta tinjau daftar file.
+5. Audit perubahan repository untuk token, URL deployment, ID privat, dan data pribadi.
+6. Catat bukti tersanitasi dan ubah status menjadi `REVIEW`.
+
+### Rencana rollback
+
+Gunakan versi deployment staging sebelumnya melalui approval operasi staging yang sama. Jika target project salah, hentikan proses sebelum push. Jangan menghapus project, deployment, Spreadsheet, atau Drive. Metadata `.clasp.json` tetap lokal dan diabaikan Git.
+
+### Hasil validasi
+
+1. `clasp status` membatasi sinkronisasi pada lima file runtime dalam scope: tiga template HTML, backend GAS, dan manifest.
+2. `clasp push` ke project GAS staging berhasil; versi baru dibuat dan deployment staging diperbarui.
+3. Endpoint staging merespons HTTP 200 dan memuat wrapper iframe GAS. Isi UI dalam iframe tidak dapat divalidasi melalui respons HTTP statis.
+4. Pemeriksaan source menemukan konfigurasi `SPREADSHEET_ID` dan `DRIVE_ROOT_FOLDER_ID` masih berupa placeholder. Deployment baru tidak aman dipakai untuk smoke test data.
+5. Setelah approval eksplisit, deployment staging berhasil dikembalikan ke versi sebelumnya. Tidak ada deployment produksi atau operasi data.
+6. Cache lokal berisi metadata `clasp` dan respons HTTP sudah dihapus.
+7. `git diff --check` lulus. Audit baris tambahan diff tidak menemukan private key, token OAuth, URL deployment GAS lengkap, atau ID resource privat.
+8. Branch aktif masih `feat/JST-014-integrasi-login-baru`, bukan branch JST-015. Branch tidak diubah karena working tree memuat perubahan JST-014/JST-012 yang belum dipisahkan.
+9. Acceptance criteria deployment source terbaru dan verifikasi tiga template runtime belum terpenuhi setelah rollback.
+
+### Catatan review
+
+Operasi JST-015 selesai dengan rollback aman dan status `REVIEW`. Hasil memerlukan review manusia: source sudah tersinkron ke project staging, tetapi deployment aktif kembali ke versi sebelumnya karena konfigurasi target data belum terbukti. Tidak mencakup commit, merge, force push, pembaruan `CHANGELOG.md`, deployment produksi, atau operasi data produksi.
+
+---
+
+## JST-016 — Konfigurasi resource staging melalui Script Properties
+
+- **Status:** `REVIEW`
+- **Jenis:** `security`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-26
+- **Approval:** pengguna (Master), 2026-08-26, dengan teks `JST-016 saya approved`
+
+### Tujuan
+
+Mengganti placeholder konfigurasi resource pada backend dengan pembacaan `SPREADSHEET_ID` dan `DRIVE_ROOT_FOLDER_ID` dari GAS Script Properties, memverifikasi keduanya menunjuk resource staging JST-012, lalu menyiapkan deployment terbaru agar JST-013 dapat dijalankan aman.
+
+### Acceptance criteria
+
+- [x] Backend membaca `SPREADSHEET_ID` dan `DRIVE_ROOT_FOLDER_ID` dari Script Properties server-side.
+- [x] Konfigurasi kosong, placeholder, atau tidak valid ditolak sebelum operasi Spreadsheet/Drive.
+- [x] Nilai ID staging tidak masuk source, Git, log, bukti, atau respons browser.
+- [x] Panduan teknis pengisian Script Properties staging dan verifikasi resource ditambahkan ke dokumentasi deployment.
+- [x] Tidak ada perubahan OAuth scope, permission produksi, resource produksi, atau dependency.
+- [ ] JST-013 baru dilanjutkan setelah validasi target staging dan update deployment Web App selesai di-review.
+
+### Ruang lingkup
+
+- `PLAN.md`
+- `04_Backend_GAS/Code.gs`
+- `docs/DEPLOYMENT_STAGING_GAS_JST-011.md`
+- Project, Script Properties, Spreadsheet, folder Drive, dan deployment GAS staging JST-012.
+- Metadata lokal `.clasp.json` yang diabaikan Git.
+
+### Di luar ruang lingkup
+
+- Resource, deployment, Spreadsheet, Drive, akun, atau data produksi.
+- Perubahan autentikasi, otorisasi, hashing, token, sesi, atau logic bisnis.
+- Perubahan `04_Backend_GAS/appsscript.json`, OAuth scope, permission, atau sharing produksi.
+- Eksekusi ST-01 sampai ST-12; tetap ditangani JST-013.
+- Commit, merge, force push, pembaruan `CHANGELOG.md`, dan deployment produksi.
+- Penyimpanan nilai Script Properties atau metadata privat di repository.
+
+### Risiko keamanan/data
+
+- ID staging yang salah dapat mengarahkan operasi ke resource produksi atau resource milik pihak lain.
+- Nilai Script Properties dapat bocor bila dicetak ke log, error, respons browser, atau bukti.
+- Validasi target yang menulis data dapat mengubah resource sebelum identitasnya terbukti.
+- Deployment Web App staging bersifat publik dan dapat menerima trafik eksternal.
+- Perubahan konfigurasi runtime dan deployment memerlukan approval operasi terpisah.
+
+### Rencana implementasi
+
+1. Dapatkan approval eksplisit implementasi, network Google, perubahan Script Properties staging, validasi read-only resource staging, `clasp push`, dan deployment/rollback staging.
+2. Buat branch `security/JST-016-script-properties-staging` tanpa mencampur perubahan working tree task lain.
+3. Baca ulang seluruh file scope sebelum edit atau operasi runtime.
+4. Ubah helper konfigurasi minimum di `Code.gs` agar membaca kedua ID melalui `PropertiesService.getScriptProperties()`.
+5. Tolak nilai kosong, placeholder, atau format tidak valid memakai error generik tanpa nilai konfigurasi.
+6. Pasang kedua nilai hanya pada Script Properties project staging JST-012 melalui kanal lokal/Google yang tidak masuk Git.
+7. Validasi read-only bahwa Spreadsheet memuat empat sheet staging dan folder Drive dapat diakses.
+8. Sinkronkan source scope, buat versi, lalu perbarui deployment Web App staging.
+9. Verifikasi tiga template runtime; hentikan dan rollback bila identitas resource atau runtime tidak terbukti.
+10. Jangan menjalankan JST-013 dalam item ini.
+
+### Rencana validasi
+
+1. Jalankan pemeriksaan syntax GAS/JavaScript tanpa dependency baru.
+2. Uji helper terhadap konfigurasi kosong, placeholder, format invalid, dan nilai sintetis valid tanpa mencetak ID.
+3. Verifikasi source dan diff tidak memuat nilai Script Properties.
+4. Jalankan pemeriksaan read-only terhadap nama empat sheet dan akses folder pada resource staging.
+5. Jalankan `clasp status`; pastikan hanya file runtime scope yang disinkronkan.
+6. Verifikasi deployment staging memuat source terbaru serta template `Login`, `Dashboard`, dan `Konfirmasi`.
+7. Jalankan `git diff --check`, tinjau daftar file, dan audit token, URL deployment, ID privat, password, serta data pribadi.
+8. Catat bukti tersanitasi dan ubah status menjadi `REVIEW`.
+9. Setelah review JST-016, kembalikan JST-013 dari `BLOCKED` hanya melalui kelanjutan task yang disetujui.
+
+### Rencana rollback
+
+Kembalikan deployment staging ke versi sebelumnya dan pulihkan source melalui revert perubahan `[JST-016]`; keduanya memerlukan approval operasi yang sesuai. Hapus hanya dua Script Properties staging bila nilainya terbukti salah dan approval penghapusan tersedia. Jangan menghapus project, Spreadsheet, folder Drive, deployment, data, atau histori bersama.
+
+### Hasil validasi
+
+1. Syntax checking `04_Backend_GAS/Code.gs` via Node.js compiler check (`node -c`) lulus tanpa syntax error.
+2. Unit validator test `tests/jst016_resource_config_check.js` dijalankan via Node.js: 7/7 uji kasus lulus:
+   - Menolak konfigurasi kosong / missing property.
+   - Menolak string kosong / whitespace.
+   - Menolak nilai placeholder (`YOUR_STAGING_SPREADSHEET_ID`, `YOUR_STAGING_DRIVE_FOLDER_ID`).
+   - Menolak ID berkarakter invalid / injection.
+   - Menolak ID terlalu pendek (< 20 karakter).
+   - Menerima ID spreadsheet sintetik valid.
+   - Menerima ID drive folder sintetik valid.
+3. Pesan error yang dihasilkan bersifat generik tanpa mengekspos isi atau nilai konfigurasi.
+4. `docs/DEPLOYMENT_STAGING_GAS_JST-011.md` diperbarui dengan tata cara pengaturan Script Properties via Apps Script UI / CLI dan petunjuk verifikasi resource.
+5. `git diff --check` lulus tanpa whitespace error atau jejak kredensial/token/ID rahasia.
+6. Tidak ada perubahan pada OAuth scope (`04_Backend_GAS/appsscript.json`), dependency baru, atau logic auth.
+
+### Catatan review
+
+Implementasi JST-016 selesai pada tahap source dan verifikasi logic lokal. Status diubah menjadi `REVIEW`. Pengisian Script Properties aktual pada target GAS Staging dan push deployment Web App siap dilanjutkan setelah review manusia dan persetujuan eksekusi remote/JST-013.
+
+---
+
+## JST-017 — Perbaikan navigasi autentikasi Web App GAS dan penuntasan smoke test
+
+- **Status:** `APPROVED`
+- **Jenis:** `fix`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-26
+- **Approval:** pengguna (Master), 2026-08-26, dengan teks `APPROVE IMPLEMENTATION JST-017 — izinkan branch fix/JST-017-navigasi-auth-smoke-test, edit source scope, network Google/clasp, konfigurasi Script Properties staging, push/deployment staging, eksekusi smoke test sintetis ST-01 s/d ST-12, dan cleanup sintetis; tanpa data produksi, tanpa commit/merge/force push.`
+- **Approval perluasan scope template:** pengguna (Master), 2026-08-26, dengan teks `APPROVE SCOPE JST-017 — tambahkan 04_Backend_GAS/Login.html, 04_Backend_GAS/Dashboard.html, dan 04_Backend_GAS/Konfirmasi.html sebagai template deployment; izinkan update PLAN.md, clasp push, pembuatan version, dan update deployment staging; tanpa produksi, dependency, commit, atau merge.`
+- **Approval perluasan scope logout & logo:** pengguna (Master), 2026-08-27, dengan teks `APPROVE SCOPE JST-017 — izinkan perbaikan logout blank pada Dashboard dan penggantian logo Login/Dashboard memakai Assets/logo-jastip-apps.png; izinkan edit source scope, sinkronisasi template deployment, clasp push, pembuatan version, update deployment staging, dan lanjut smoke test sintetis; tanpa produksi, dependency, commit, merge, atau force push.`
+- **Approval implementasi Opsi 1 manual link & staging update:** pengguna (Master), 2026-08-27, dengan teks `APPROVE JST-017 — izinkan implementasi Opsi A link manual target=_top, sinkronisasi template deployment, clasp push/staging update, dan smoke test ulang.`
+
+### Tujuan
+
+Menuntaskan perbaikan navigasi autentikasi Web App GAS memakai pola tautan konfirmasi manual `target="_top"` (Opsi 1) yang sesuai batasan sandbox IFRAME GAS, memastikan logo resmi konsisten, dan mencatat hasil ST-01 sampai ST-12 secara terukur tanpa memperluas scope ke fixture expiry atau cleanup data staging.
+
+### Acceptance criteria
+
+- [ ] Setelah signup atau login sukses, antarmuka menyediakan aksi/link manual dengan `target="_top"` untuk membuka Dashboard secara terpercaya dalam sandbox GAS.
+- [ ] Setelah logout sukses maupun gagal, token lokal tetap dihapus dan antarmuka menyediakan aksi/link manual dengan `target="_top"` untuk kembali ke Login.
+- [ ] Logo resmi dari `Assets/logo-jastip-apps.png` tampil konsisten pada Login dan Dashboard tanpa URL eksternal.
+- [ ] Kegagalan backend tetap menampilkan pesan aman dan tombol form kembali aktif.
+- [ ] ST-01 sampai ST-12 dicatat dengan bukti perintah dan hasil tersanitasi; ST-10 tetap `BLOCKED` sampai fixture expiry mendapat approval terpisah.
+- [ ] Tujuh akun sintetis staging, satu pesanan, dua file bukti/foto, dan satu entri histori email tetap terinventaris; cleanup memerlukan approval terpisah.
+- [ ] Tidak ada perubahan auth server-side yang menurunkan keamanan, tidak ada perubahan OAuth scope, tidak ada dependency baru, dan tidak menyentuh data/resource produksi.
+
+### Ruang lingkup
+
+- `PLAN.md`
+- `01_Login_Signup/Login.html`
+- `02_Dashboard_Jastiper/Dashboard.html` untuk navigasi logout dan logo resmi yang terbukti bermasalah
+- `Assets/logo-jastip-apps.png` hanya sebagai sumber logo resmi read-only
+- `04_Backend_GAS/Code.gs` hanya untuk menyediakan URL Web App publik tanpa rahasia bila diperlukan
+- `04_Backend_GAS/Login.html`, salinan deployment dari `01_Login_Signup/Login.html`
+- `04_Backend_GAS/Dashboard.html`, salinan deployment dari `02_Dashboard_Jastiper/Dashboard.html`
+- `04_Backend_GAS/Konfirmasi.html`, salinan deployment dari `03_Konfirmasi_Pembelian/Konfirmasi.html`
+- `docs/STAGING_SMOKE_TEST_JST-007.md`
+- Project, Script Properties, deployment, Spreadsheet, dan folder Drive staging JST-012
+- Dua akun dan data/file uji sintetis
+
+### Di luar ruang lingkup
+
+- Resource dan data produksi.
+- Perubahan hashing, format token, expiry sesi, otorisasi, atau rate-limit.
+- Perubahan manifest, scope OAuth, permission, atau sharing.
+- Dependency baru.
+- Commit, merge, force push, pembaruan `CHANGELOG.md`, atau deployment produksi.
+- Penghapusan resource staging secara massal.
+
+### Risiko keamanan/data
+
+- Redirect ke URL yang berasal dari browser dapat membuka open redirect; target wajib dibentuk server-side atau dari URL deployment tepercaya.
+- Submit ST-01 sebelumnya mungkin sudah membuat akun sintetis parsial atau lengkap.
+- Deployment publik staging dapat menerima trafik eksternal.
+- Pengulangan uji dapat meninggalkan akun, sesi, baris pesanan, dan file sintetis.
+- Nilai Script Properties, deployment URL, token sesi, dan ID resource tidak boleh masuk Git atau bukti.
+
+### Rencana implementasi
+
+1. Dapatkan approval eksplisit untuk edit source, network Google, validasi read-only resource, perubahan Script Properties staging bila belum terisi, push/deploy/rollback staging, operasi data sintetis, dan cleanup terinventaris.
+2. Buat branch `fix/JST-017-navigasi-auth-smoke-test` setelah working tree task sebelumnya dipisahkan aman.
+3. Verifikasi inventaris sintetis terdahulu secara read-only sebelum membuat data fixture baru.
+4. Setelah signup/login sukses, tampilkan link nyata `Buka Dashboard` dengan `target="_top"`; jangan memicu klik programatik dari callback async.
+5. Setelah logout sukses maupun gagal, tampilkan link nyata `Kembali ke Login` dengan `target="_top"`; hapus token lokal sebelum RPC dan jangan pulihkan token.
+6. Pertahankan target route dari `webAppUrl` server-side tepercaya; jangan menerima origin redirect dari input browser.
+7. Salin tiga template UI ke dalam `rootDir` clasp sebagai file deployment agar `HtmlService.createTemplateFromFile` dapat menemukannya.
+8. Jalankan pemeriksaan lokal, sinkronkan source, lalu update deployment staging setelah approval deployment staging.
+9. Catat ST-01 sampai ST-12 secara berurutan; pertahankan ST-10 sebagai `BLOCKED` karena fixture expiry belum disetujui.
+10. Ganti logo buatan/inkonsisten pada Login dan Dashboard dengan representasi inline dari `Assets/logo-jastip-apps.png`; jangan menambah URL eksternal.
+11. Pertahankan inventaris data/file sintetis; jangan cleanup tanpa approval terpisah.
+12. Jika ditemukan bug lain dalam file scope, hentikan, dokumentasikan, dan minta approval ulang bila perubahan memperbesar scope.
+
+### Rencana validasi
+
+1. Parse JavaScript HTML dan GAS.
+2. Uji pembentukan target route tanpa menerima origin dari input browser.
+3. Verifikasi Script Properties dan empat sheet staging secara read-only tanpa mencetak ID.
+4. Verifikasi template Login, Dashboard, dan Konfirmasi pada deployment terbaru.
+5. Jalankan ST-01 sampai ST-12 serta catat hasil dan error tersanitasi.
+6. Periksa jumlah baris/file sebelum dan sesudah uji; cleanup hanya entitas sintetis terinventaris.
+7. Jalankan `git diff --check`, tinjau seluruh diff dan file tak terduga.
+8. Audit token, password, URL deployment privat, ID resource, dan data pribadi baru.
+9. Catat bukti dan ubah status menjadi `REVIEW`.
+
+### Rencana rollback
+
+Kembalikan deployment staging ke versi terakhir yang diketahui aman. Revert perubahan source `[JST-017]` tanpa reset histori bersama. Hapus hanya akun, sesi, pesanan, dan file sintetis yang terinventaris setelah approval cleanup; jangan menghapus resource staging atau data lain.
+
+### Hasil validasi
+
+#### Source dan deployment
+
+- `node tests/jst017_auth_navigation_check.js`: lulus (`JST-017 auth navigation unit check passed.`).
+- Parse JavaScript enam template HTML dan `04_Backend_GAS/Code.gs`: lulus.
+- Hash SHA-256 logo inline Login/Dashboard cocok dengan `Assets/logo-jastip-apps.png`: `1904387888d5a1a4c5672429d4db3b6167a821b630ee431ddb4ffa148c8e55ab`.
+- Salinan deployment Login, Dashboard, dan Konfirmasi identik byte dengan source kanonik: lulus.
+- Secret scan source/template: lulus; tidak ditemukan token, password, URL deployment privat lengkap, private key, API key, atau data pribadi produksi.
+- `git diff --check`: lulus; hanya peringatan line-ending Git yang sudah ada pada file GAS/manifest.
+- `clasp push -f`: lima file GAS terunggah. Version 6 dan 7 dibuat. Deployment staging saat ini memakai version 7; ID deployment tidak dicatat ke Git.
+- Route default, login, account, dan dashboard pada staging version 6 merespons HTTP 200. Login/account memuat dua payload logo inline resmi; Dashboard memuat satu payload; binding `webAppUrl` tersedia.
+
+#### Smoke test staging tersanitasi
+
+- ST-01 `LULUS`: signup sintetis berhasil dan sesi dibuat.
+- ST-02 `LULUS`: signup attempt total ke-6 pada identitas sama ditolak rate limit server-side.
+- ST-03 `LULUS`: login sintetis berhasil.
+- ST-04 `LULUS`: login attempt ke-11 pada identitas sama ditolak rate limit server-side.
+- ST-05 `LULUS`: perubahan email profil berhasil, sesi lama dicabut, dan login ulang memakai email baru berhasil.
+- ST-06 `LULUS`: konfirmasi buyer, satu foto PNG 1x1, dan satu bukti transfer PNG 1x1 tersimpan pada staging.
+- ST-07 `LULUS`: satu field konfirmasi sintetis berhasil diperbarui memakai edit token valid.
+- ST-08 `LULUS`: akun Beta melihat nol order Alpha; akses file Alpha dengan sesi Beta ditolak server-side.
+- ST-09 `LULUS`: logout backend berhasil dan penggunaan ulang sesi ditolak.
+- ST-10 `BLOCKED`: sesi valid berumur 12 jam; source tidak menyediakan fixture untuk membuat sesi valid kedaluwarsa, dan pengujian tidak mengubah `expiresAt` langsung. Inspeksi source tetap menunjukkan batas kedaluwarsa aman `exp.getTime() <= Date.now()`.
+- ST-11 `LULUS`: signup dan buyer payload invalid ditolak server-side.
+- ST-12 `LULUS`: token acak/tidak dikenal ditolak server-side.
+
+#### Temuan runtime navigasi
+
+- Login -> Dashboard pernah mencapai template Dashboard memakai navigasi iframe lama, tetapi menghasilkan hierarchy iframe bertingkat dan tidak memberi jalur Logout -> Login yang andal.
+- Logout menghapus token lokal sebelum RPC; revokasi backend lulus. Namun navigasi Login otomatis setelah callback async tetap gagal dalam batas 45 detik pada browser headless.
+- Dokumentasi resmi GAS menyatakan HTML Service memakai IFRAME sandbox dengan `allow-top-navigation-by-user-activation`; `allow-top-navigation` tidak tersedia. Redirect top-level perlu link/tombol dengan target `_top` atau `_blank` dan tindakan pengguna.
+- `window.location.replace`, `window.parent.location.replace`, `window.open(target, '_top')`, dan klik anchor `_top` programatik setelah callback async tidak menghasilkan siklus Login -> Dashboard -> Login yang andal pada staging.
+- Perubahan UX atau arsitektur diperlukan: link lanjutan manual `_top` setelah hasil auth/logout, atau alur SPA in-DOM tanpa redirect halaman. Temuan ini memperbesar scope; implementasi lanjutan menunggu approval baru.
+
+#### Inventaris staging dan cleanup
+
+- Tujuh akun jastiper sintetis terinventaris: satu akun ST-01 sebelum resumption, dua akun matriks utama, tiga akun percobaan UI berlabel `UI Jastip Test`, dan satu akun berlabel `Human Jastip`.
+- Satu order sintetis, satu foto item PNG 1x1, satu bukti transfer PNG 1x1, dan satu audit perubahan email terinventaris.
+- Sesi matriks utama Alpha/Beta telah dicabut. Status sesi akun percobaan UI tidak diasumsikan bersih karena navigasi gagal.
+- Cleanup belum dilakukan karena tidak ada endpoint cleanup terbatas; menambah helper sementara akan memperbesar source scope. Cleanup berikutnya wajib hanya menyasar marker sintetis terinventaris dan memerlukan approval course correction.
+
+#### Status gate
+
+- JST-017 dikembalikan ke `PROPOSED`, bukan `REVIEW`, karena acceptance criteria navigasi otomatis dan ST-10 belum terpenuhi.
+- Tidak ada commit, merge, force push, deployment produksi, atau operasi data produksi.
+
+#### Proposal course correction — Opsi A dipilih pengguna, menunggu status `APPROVED`
+
+1. **Opsi A — UX link lanjutan manual `_top` (dipilih, diff terkecil):** setelah signup/login sukses, tampilkan link `Buka Dashboard`; setelah logout sukses/gagal, tampilkan link `Kembali ke Login`. Link nyata memakai `target="_top"` dan memerlukan klik pengguna sesuai sandbox GAS. Acceptance criteria navigasi otomatis diubah menjadi navigasi satu klik yang terukur. Scope tambahan: `01_Login_Signup/Login.html`, `02_Dashboard_Jastiper/Dashboard.html`, dua salinan deployment, test lokal, staging version baru, dan smoke UI manual/CDP.
+2. **Opsi B — SPA in-DOM:** gabungkan state Login dan Dashboard dalam satu template agar tidak memerlukan top navigation. Scope, risiko, dan diff jauh lebih besar; perlu rencana baru dan review keamanan/UX terpisah.
+3. **Cleanup/fixture terpisah:** tambahkan helper staging sementara yang hanya memilih marker sintetis JST-017 untuk menghapus tujuh akun, sesi terkait, satu order, dua file, dan satu audit email; helper juga dapat membuat satu sesi expired terisolasi untuk ST-10. Helper wajib dihapus dari source dan staging setelah bukti cleanup/expiry. Perubahan ini membutuhkan approval source/deployment staging khusus dan tidak menyentuh produksi.
+
+### Catatan review
+
+Diagnosis statis awal: `Login.html` memakai `window.location.href='?page=dashboard'` dari iframe sandbox GAS pada dua jalur, yaitu sesi tersimpan dan autentikasi sukses. URL relatif dapat menavigasi iframe, bukan endpoint Web App utama, sehingga konsisten dengan layar putih setelah submit.
+
+Temuan runtime setelah ST-01 dan ST-02:
+- ST-01 signup dan navigasi Dashboard lulus.
+- ST-02 rate limit signup muncul pada percobaan ke-6 dan lulus.
+- Logout menghasilkan halaman putih. Handler hanya menavigasi pada `withSuccessHandler`; tidak ada `withFailureHandler`, dan navigasi iframe perlu tetap memakai target Web App tepercaya.
+- Login memakai logo SVG buatan yang berbeda dari aset resmi. Dashboard memakai data URI besar yang gagal tampil pada runtime.
+- Perbaikan logo memperbesar scope JST-017. Item dikembalikan ke `PROPOSED`; perubahan source berikutnya menunggu approval manusia ulang.
+
+---
+
+## JST-018 — Pengaturan multi-rekening bank transfer jastiper
+
+- **Status:** `APPROVED`
+- **Jenis:** `feat`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-27
+- **Approval:** pengguna (Master), 2026-08-27, dengan teks `APPROVE JST-018 — izinkan implementasi multi-rekening bank di Dashboard, Konfirmasi, dan backend Code.gs beserta unit test.`
+
+### Tujuan
+
+Memungkinkan jastiper menambah, mengubah, dan menghapus daftar pilihan rekening bank transfer (nama bank fleksibel seperti BRI, Mandiri, BCA, BSI, dan bank lain beserta nomor rekening dan nama pemilik rekening) pada Dashboard, kemudian menampilkan seluruh rekening tersebut sebagai opsi pembayaran pada halaman konfirmasi buyer secara dinamis dan aman.
+
+### Acceptance criteria
+
+- [ ] Dashboard menyediakan UI dinamis untuk menambah/menghapus baris rekening: nama bank, nomor rekening, nama pemilik rekening.
+- [ ] Nama bank fleksibel (misal BRI, Mandiri, BCA, BSI, dll.).
+- [ ] Client dan server memvalidasi struktur array: nama bank 1–40 karakter, nomor rekening 4–40 karakter, nama pemilik 1–120 karakter.
+- [ ] Jastiper dapat menyimpan 0–10 rekening; jika kosong, form buyer memberi tahu rekening belum diatur.
+- [ ] Form buyer merender rekening aktif dinamis sebagai radio beserta nama bank, nomor, dan nama pemilik.
+- [ ] Backend menyimpan array JSON terstruktur pada kolom `bankAccountsJson`, dengan fallback baca kolom lama `briNumber`, `briName`, `bsiNumber`, `bsiName` agar akun lama tetap berfungsi tanpa migrasi destruktif.
+- [ ] `getPublicConfig` hanya menyajikan rekening jastiper pemilik share code/order terkait.
+- [ ] Semua input dirender aman memakai `textContent` atau encoding HTML.
+- [ ] Update rekening memerlukan sesi jastiper valid server-side.
+
+### Ruang lingkup
+
+- `PLAN.md`
+- `02_Dashboard_Jastiper/Dashboard.html`
+- `03_Konfirmasi_Pembelian/Konfirmasi.html`
+- `04_Backend_GAS/Code.gs`
+- `04_Backend_GAS/Dashboard.html`
+- `04_Backend_GAS/Konfirmasi.html`
+- Test lokal skema, validasi, sanitasi, dan rendering
+
+### Di luar ruang lingkup
+
+- Payment gateway atau API bank.
+- Validasi nama rekening melalui API perbankan.
+- Operasi data/resource produksi.
+- Dependency pihak ketiga.
+
+### Risiko keamanan/data
+
+- Payload rekening dari browser tidak tepercaya; semua field wajib divalidasi server-side dan di-escape saat render publik.
+- Kolom `Jastipers` baru tidak boleh merusak posisi/data akun lama.
+- Update jastiper Alpha tidak boleh memengaruhi jastiper Beta.
+- Nomor dan nama rekening memang akan dipublikasikan melalui share link buyer; jastiper harus menyimpan hanya rekening yang disetujui untuk tampil publik.
+
+### Rencana implementasi
+
+1. Tambah test lokal skema dan validasi multi-rekening.
+2. Tambah `bankAccountsJson` via `ensureSheet_`; fallback BRI/BSI lama bila JSON kosong.
+3. Validasi dan simpan array pada `updateJastiperSettings`.
+4. Kembalikan array lewat `getPublicConfig` dan `publicProfile_`.
+5. Buat UI tambah/hapus rekening pada Dashboard.
+6. Render radio rekening dinamis secara aman pada Konfirmasi.
+7. Sinkronkan template deployment.
+
+### Rencana validasi
+
+1. Parse JavaScript file sasaran.
+2. Test payload valid/invalid, batas 10 rekening, dan fallback akun lama.
+3. Test nama bank berisi HTML; output wajib tetap teks.
+4. Test isolasi jastiper A/B server-side.
+5. Audit diff/rahasia, lalu ubah status `REVIEW`.
+
+### Rencana rollback
+
+Revert perubahan `[JST-018]`. Kode lama mengabaikan kolom tambahan; empat kolom rekening lama tidak dihapus.
+
+---
+
+## JST-019 — Hapus dan ganti foto barang buyer sebelum submit konfirmasi
+
+- **Status:** `APPROVED`
+- **Jenis:** `feat`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-27
+- **Approval:** pengguna (Master), 2026-08-27, dengan teks `APPROVE JST-019 — izinkan implementasi tombol hapus/ganti foto barang pada Konfirmasi.html beserta unit test.`
+
+### Tujuan
+
+Menyediakan tombol hapus foto barang yang sudah dipilih pada form konfirmasi buyer sebelum diupload, sehingga buyer yang salah memilih foto dapat membatalkan atau mengganti foto barang secara mudah sebelum submit.
+
+### Acceptance criteria
+
+- [ ] Setiap baris barang pada `Konfirmasi.html` yang memiliki file terpilih menampilkan tombol "Hapus Foto".
+- [ ] Tombol "Hapus Foto" mengosongkan input file, menyembunyikan preview gambar, dan membersihkan object URL preview (`URL.revokeObjectURL`) untuk mencegah memory leak.
+- [ ] Buyer dapat memilih foto baru setelah menghapus.
+- [ ] Validasi submit tetap menolak jika ada baris barang yang tidak memiliki foto (file baru maupun `existingUrl` pada mode edit).
+- [ ] Pada mode edit konfirmasi, membatalkan file baru mengembalikan status indikator foto lama yang tersimpan.
+- [ ] Tidak ada file yang diunggah ke Google Drive sebelum tombol submit ditekan.
+- [ ] Tampilan responsif dan mudah digunakan pada mobile.
+
+### Ruang lingkup
+
+- `PLAN.md`
+- `03_Konfirmasi_Pembelian/Konfirmasi.html`
+- `04_Backend_GAS/Konfirmasi.html`
+- Test lokal interaksi DOM / validasi submit barang
+
+### Di luar ruang lingkup
+
+- Penghapusan file lama di Google Drive jastiper saat edit mode.
+- Editor gambar (crop/rotate/filter).
+- Operasi data/resource produksi.
+
+### Risiko keamanan/data
+
+- State client tidak boleh meloloskan submit barang tanpa foto valid ke backend; validasi server `saveConfirmation` tetap menjadi penegak utama.
+- `URL.createObjectURL` wajib di-revoke agar tidak menimbulkan memory leak.
+
+### Rencana implementasi
+
+1. Tambah test lokal untuk alur tambah, pilih file, hapus file, dan validasi form submit.
+2. Perbarui `Konfirmasi.html`:
+   - Tambahkan tombol "Hapus Foto" di bawah input file / preview.
+   - Tambahkan handler reset input file (`value = ''`), hapus object URL preview, dan sembunyikan thumbnail preview.
+   - Pada mode edit, kembalikan indikator visual ke `existingUrl` jika file baru dibatalkan.
+3. Pastikan `collectPayload` membaca input file yang sudah direset dengan benar.
+4. Sinkronkan ke `04_Backend_GAS/Konfirmasi.html`.
+
+### Rencana validasi
+
+1. Parse JavaScript `Konfirmasi.html` dan `04_Backend_GAS/Konfirmasi.html`.
+2. Verifikasi lokal: pilih file -> preview muncul -> klik hapus -> preview hilang -> input kosong -> submit gagal jika tanpa foto.
+3. Verifikasi lokal: pilih file A -> hapus -> pilih file B -> submit mengirim file B.
+4. Audit diff dan rahasia; ubah status menjadi `REVIEW`.
+
+### Rencana rollback
+
+Revert perubahan `Konfirmasi.html` dan `04_Backend_GAS/Konfirmasi.html` `[JST-019]`.
+
+---
+
+## JST-020 — Navigasi otomatis top-level pasca auth dan logout
+
+- **Status:** `APPROVED`
+- **Jenis:** `feat`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-27
+- **Approval:** pengguna (Master), 2026-08-27, dengan pilihan checkpoint `APPROVE JST-020; izinkan commit checkpoint JST-017, lalu kerjakan JST-020, JST-018, JST-019 pada branch terpisah tanpa merge/deploy`.
+
+### Tujuan
+
+Mengganti alur konfirmasi tombol manual `target="_top"` menjadi pengalihan otomatis browser langsung ke Dashboard setelah pendaftaran/login berhasil, serta otomatis kembali ke Login page saat logout tanpa menampilkan tombol perantara.
+
+### Acceptance criteria
+
+- [ ] Pendaftaran akun jastip yang sukses otomatis mengalihkan viewport penuh (`top`) ke `?page=dashboard`.
+- [ ] Login jastiper yang sukses otomatis mengalihkan viewport penuh (`top`) ke `?page=dashboard`.
+- [ ] Klik tombol logout pada Dashboard menghapus token sesi lokal dan otomatis mengalihkan viewport penuh (`top`) ke `?page=login` tanpa tombol konfirmasi perantara.
+- [ ] Jika sandbox iframe browser memblokir manipulasi `window.top.location`, sediakan fallback transparan yang aman tanpa merusak sesi.
+- [ ] Tidak ada dependency baru, tidak ada kebocoran token di URL/log, dan otorisasi server tetap terjaga.
+
+### Ruang lingkup
+
+- `PLAN.md`
+- `01_Login_Signup/Login.html`
+- `02_Dashboard_Jastiper/Dashboard.html`
+- `04_Backend_GAS/Login.html`
+- `04_Backend_GAS/Dashboard.html`
+- Unit test navigasi otomatis
+
+### Di luar ruang lingkup
+
+- Penggabungan halaman menjadi Single Page Application penuh.
+- Operasi data atau deployment produksi.
+
+### Risiko keamanan/data
+
+- Sandbox iframe Google Apps Script (`ALLOWALL`) dapat memicu pelanggaran same-origin saat mengakses `window.top.location.href` langsung jika domain iframe dan pembungkus berbeda. Implementasi wajib memakai URL Web App tepercaya server-side.
+
+### Rencana implementasi
+
+1. Tambah test lokal skenario navigasi otomatis.
+2. Perbarui `Login.html` dan `Dashboard.html` agar mengalihkan `window.top.location.href = webAppUrl + '?page=...'` secara otomatis pada callback sukses auth/logout.
+3. Sinkronkan ke folder `04_Backend_GAS/`.
+
+### Rencana validasi
+
+1. Parse JavaScript file HTML.
+2. Test lokal callback navigasi dan verifikasi tiada tombol perantara saat sukses.
+3. Audit diff dan verifikasi keamanan.
+
+### Rencana rollback
+
+Revert perubahan `[JST-020]` kembali ke tautan manual `target="_top"`.
+
 ## Template item baru
 
 Salin blok berikut. Jangan menghapus item lama.
