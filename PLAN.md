@@ -1644,6 +1644,17 @@ Revert perubahan `[JST-021]` pada dua template Konfirmasi dan test terkait. Depl
 
 Implementasi dan penutupan JST-021 disetujui Master pada 2026-08-27 bersama integrasi JST-018, JST-019, JST-020 untuk deployment staging. Status `DONE`.
 
+### Bukti integrasi dan deployment staging
+
+- Branch integrasi: `chore/JST-021-integrasi-staging`; commit penutupan `2dc6b21`.
+- `clasp push`: 5 file GAS berhasil diunggah (`Code.gs`, 3 template HTML, manifest); Script Properties dan resource data tidak diubah.
+- Deployment Web App staging aktif diperbarui ke versi `@9` dengan deskripsi `JST-018 JST-019 JST-020 JST-021 staging 2026-08-27`; URL deployment privat tidak dicatat.
+- GET read-only Konfirmasi, Login, dan Dashboard: HTTP `200`.
+- Screenshot staging desktop `1280x1200` dan mobile `390x844`: halaman Konfirmasi ter-render dan logo resmi tampil; bukti disimpan sementara di direktori temp lokal, tidak di-commit.
+- Test lokal gabungan JST-016/JST-018/JST-019/JST-020/JST-021, parse JavaScript, sinkronisasi template, `git diff --check`, dan secret scan: lulus.
+- Security review: tidak ada kerentanan high-confidence baru. Otorisasi server-side, validasi rekening, dan kontrol upload tetap aktif; manifest/OAuth scope tidak berubah.
+- Smoke test aktif yang membuat akun/order/upload dan operasi `setupApp()` tidak dijalankan karena tidak termasuk approval operasi data. Rollback deployment staging tersedia dengan redeploy versi `@8`.
+
 ---
 
 ## Template item baru
