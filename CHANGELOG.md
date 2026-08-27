@@ -12,6 +12,8 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 - Panduan smoke test staging dengan 12 skenario aman dan data sintetis (`JST-007`).
 - Panduan persiapan deployment GAS staging, integrasi GitHub, dan verifikasi staging (`JST-011`).
 - Provisioning resource staging backend GAS, inisialisasi sheet database via `setupApp()`, dan deployment Web App staging (`JST-012`).
+- Pengaturan dinamis hingga 10 rekening bank per jastiper dengan fallback data rekening lama (`JST-018`).
+- Tombol hapus dan ganti foto barang buyer sebelum submit (`JST-019`).
 
 ### Security
 
@@ -23,6 +25,8 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 ### Changed
 
 - Dashboard dan backend mendukung perubahan username serta email aktif dengan histori audit email dan pencabutan sesi lama (`JST-008`).
+- Navigasi login, signup, logout, dan sesi invalid mengalihkan viewport top-level otomatis (`JST-020`).
+- Logo Konfirmasi buyer memakai data URI PNG inline dari aset resmi agar tampil pada GAS (`JST-021`).
 
 ## Aturan pencatatan
 

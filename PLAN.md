@@ -1344,11 +1344,11 @@ Temuan runtime setelah ST-01 dan ST-02:
 
 ## JST-018 — Pengaturan multi-rekening bank transfer jastiper
 
-- **Status:** `REVIEW`
+- **Status:** `DONE`
 - **Jenis:** `feat`
 - **Pemilik:** agen implementasi
 - **Dibuat:** 2026-08-27
-- **Approval:** pengguna (Master), 2026-08-27, dengan teks `APPROVE JST-018 — izinkan implementasi multi-rekening bank di Dashboard, Konfirmasi, dan backend Code.gs beserta unit test.`
+- **Approval:** pengguna (Master), 2026-08-27, teks `oke, approve semua, jst-020, jst 018, jst 019 dan 021, deploy semua ke staging.`.
 
 ### Tujuan
 
@@ -1374,7 +1374,7 @@ Memungkinkan jastiper menambah, mengubah, dan menghapus daftar pilihan rekening 
 - `04_Backend_GAS/Code.gs`
 - `04_Backend_GAS/Dashboard.html`
 - `04_Backend_GAS/Konfirmasi.html`
-- Test lokal skema, validasi, sanitasi, dan rendering
+- `tests/jst018_multi_rekening_check.js`
 
 ### Di luar ruang lingkup
 
@@ -1425,17 +1425,17 @@ Revert perubahan `[JST-018]`. Kode lama mengabaikan kolom tambahan; empat kolom 
 
 ### Catatan review
 
-Implementasi JST-018 selesai pada source dan verifikasi logic lokal. Status diubah menjadi `REVIEW`. Menunggu approval manusia sebelum commit penutupan dan merge.
+Implementasi dan penutupan JST-018 disetujui Master pada 2026-08-27 bersama integrasi JST-019, JST-020, JST-021 untuk deployment staging. Status `DONE`.
 
 ---
 
 ## JST-019 — Hapus dan ganti foto barang buyer sebelum submit konfirmasi
 
-- **Status:** `REVIEW`
+- **Status:** `DONE`
 - **Jenis:** `feat`
 - **Pemilik:** agen implementasi
 - **Dibuat:** 2026-08-27
-- **Approval:** pengguna (Master), 2026-08-27, dengan teks `APPROVE JST-019 — izinkan implementasi tombol hapus/ganti foto barang pada Konfirmasi.html beserta unit test.`
+- **Approval:** pengguna (Master), 2026-08-27, teks `oke, approve semua, jst-020, jst 018, jst 019 dan 021, deploy semua ke staging.`.
 
 ### Tujuan
 
@@ -1456,7 +1456,7 @@ Menyediakan tombol hapus foto barang yang sudah dipilih pada form konfirmasi buy
 - `PLAN.md`
 - `03_Konfirmasi_Pembelian/Konfirmasi.html`
 - `04_Backend_GAS/Konfirmasi.html`
-- Test lokal interaksi DOM / validasi submit barang
+- `tests/jst019_item_photo_action_check.js`
 
 ### Di luar ruang lingkup
 
@@ -1501,17 +1501,17 @@ Revert perubahan `Konfirmasi.html` dan `04_Backend_GAS/Konfirmasi.html` `[JST-01
 
 ### Catatan review
 
-Implementasi JST-019 selesai pada source dan verifikasi logic lokal. Status diubah menjadi `REVIEW`. Menunggu approval manusia sebelum commit penutupan dan merge.
+Implementasi dan penutupan JST-019 disetujui Master pada 2026-08-27 bersama integrasi JST-018, JST-020, JST-021 untuk deployment staging. Status `DONE`.
 
 ---
 
 ## JST-020 — Navigasi otomatis top-level pasca auth dan logout
 
-- **Status:** `REVIEW`
+- **Status:** `DONE`
 - **Jenis:** `feat`
 - **Pemilik:** agen implementasi
 - **Dibuat:** 2026-08-27
-- **Approval:** pengguna (Master), 2026-08-27, dengan pilihan checkpoint `APPROVE JST-020; izinkan commit checkpoint JST-017, lalu kerjakan JST-020, JST-018, JST-019 pada branch terpisah tanpa merge/deploy`.
+- **Approval:** pengguna (Master), 2026-08-27, teks `oke, approve semua, jst-020, jst 018, jst 019 dan 021, deploy semua ke staging.`.
 
 ### Tujuan
 
@@ -1519,11 +1519,11 @@ Mengganti alur konfirmasi tombol manual `target="_top"` menjadi pengalihan otoma
 
 ### Acceptance criteria
 
-- [ ] Pendaftaran akun jastip yang sukses otomatis mengalihkan viewport penuh (`top`) ke `?page=dashboard`.
-- [ ] Login jastiper yang sukses otomatis mengalihkan viewport penuh (`top`) ke `?page=dashboard`.
-- [ ] Klik tombol logout pada Dashboard menghapus token sesi lokal dan otomatis mengalihkan viewport penuh (`top`) ke `?page=login` tanpa tombol konfirmasi perantara.
-- [ ] Jika sandbox iframe browser memblokir manipulasi `window.top.location`, sediakan fallback transparan yang aman tanpa merusak sesi.
-- [ ] Tidak ada dependency baru, tidak ada kebocoran token di URL/log, dan otorisasi server tetap terjaga.
+- [x] Pendaftaran akun jastip yang sukses otomatis mengalihkan viewport penuh (`top`) ke `?page=dashboard`.
+- [x] Login jastiper yang sukses otomatis mengalihkan viewport penuh (`top`) ke `?page=dashboard`.
+- [x] Klik tombol logout pada Dashboard menghapus token sesi lokal dan otomatis mengalihkan viewport penuh (`top`) ke `?page=login` tanpa tombol konfirmasi perantara.
+- [x] Jika sandbox iframe browser memblokir manipulasi `window.top.location`, sediakan fallback transparan yang aman tanpa merusak sesi.
+- [x] Tidak ada dependency baru, tidak ada kebocoran token di URL/log, dan otorisasi server tetap terjaga.
 
 ### Ruang lingkup
 
@@ -1532,7 +1532,7 @@ Mengganti alur konfirmasi tombol manual `target="_top"` menjadi pengalihan otoma
 - `02_Dashboard_Jastiper/Dashboard.html`
 - `04_Backend_GAS/Login.html`
 - `04_Backend_GAS/Dashboard.html`
-- Unit test navigasi otomatis
+- `tests/jst020_auth_auto_navigation_check.js`
 
 ### Di luar ruang lingkup
 
@@ -1570,17 +1570,17 @@ Revert perubahan `[JST-020]` kembali ke tautan manual `target="_top"`.
 
 ### Catatan review
 
-Implementasi JST-020 selesai pada source dan verifikasi logic lokal. Status diubah menjadi `REVIEW`. Menunggu approval manusia sebelum commit penutupan dan merge.
+Implementasi dan penutupan JST-020 disetujui Master pada 2026-08-27 bersama integrasi JST-018, JST-019, JST-021 untuk deployment staging. Status `DONE`.
 
 ---
 
 ## JST-021 — Perbaiki logo pada halaman konfirmasi buyer
 
-- **Status:** `REVIEW`
+- **Status:** `DONE`
 - **Jenis:** `fix`
 - **Pemilik:** agen implementasi
 - **Dibuat:** 2026-08-27
-- **Approval:** pengguna (Master), 2026-08-27, dengan teks `oke, approve jst 021`.
+- **Approval:** pengguna (Master), 2026-08-27, teks `oke, approve semua, jst-020, jst 018, jst 019 dan 021, deploy semua ke staging.`.
 
 ### Tujuan
 
@@ -1642,7 +1642,7 @@ Revert perubahan `[JST-021]` pada dua template Konfirmasi dan test terkait. Depl
 
 ### Catatan review
 
-Implementasi JST-021 selesai di branch `fix/JST-021-logo-konfirmasi-buyer`. Status diubah menjadi `REVIEW`. Menunggu approval integrasi/deploy sebelum merge dan deployment staging.
+Implementasi dan penutupan JST-021 disetujui Master pada 2026-08-27 bersama integrasi JST-018, JST-019, JST-020 untuk deployment staging. Status `DONE`.
 
 ---
 
