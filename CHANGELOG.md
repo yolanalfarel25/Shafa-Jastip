@@ -32,7 +32,7 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 - Tombol `Simpan Pengaturan` Dashboard kembali mengirim profil dan rekening valid serta memulihkan status tombol setelah respons (`JST-023`).
 - Inisialisasi formulir konfirmasi buyer membaca parameter URL host Web App melalui `google.script.url.getLocation` pada runtime iframe GAS (`JST-024`).
 - Pemuatan foto barang dan bukti transfer pada Dashboard Jastiper menyimpan container DOM sebelum status memuat sehingga respons data URI base64 dari Google Drive berhasil dirender (`JST-025`).
-
+- Fix pemuatan foto Dashboard `JST-025` dirilis ke deployment GAS staging versi `@14`; deployment produksi tidak diubah (`JST-027`).
 
 ## Aturan pencatatan
 

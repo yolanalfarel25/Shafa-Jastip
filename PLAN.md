@@ -2168,3 +2168,109 @@ Sebelum commit, pulihkan hanya file dalam scope JST-026. Setelah commit, gunakan
 ### Catatan review
 
 Pekerjaan `JST-026` diselesaikan secara mandiri setelah Master berpindah ke Act Mode sebagai persetujuan scope plan. ADR-001 dicatat dan disetujui. Agen menunggu konfirmasi pilihan Master untuk tindakan Git selanjutnya.
+
+
+---
+
+## JST-027 — Rilis fix foto Dashboard Jastiper ke GAS staging
+
+- **Status:** `DONE`
+- **Jenis:** `chore`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-27
+- **Approval:** pengguna berpindah ke Act Mode dan memberi instruksi `lanjut act` pada 2026-08-27; mencakup pencatatan task, branch kerja, validasi, push source GAS, deployment staging, smoke test sintetis, dokumentasi hasil, dan rollback staging bila gagal. Tidak mencakup deployment produksi, data produksi, merge, commit, atau push Git.
+- **Selesai:** 2026-08-27
+
+### Tujuan
+
+Menerbitkan source fix `JST-025` ke deployment GAS staging agar foto barang dan bukti transfer tidak berhenti pada status `Memuat…`, tanpa mengubah source aplikasi atau kontrol keamanan backend.
+
+### Acceptance criteria
+
+- [x] Branch kerja `chore/JST-027-rilis-fix-foto-dashboard` digunakan dan perubahan task dicatat di `PLAN.md`.
+- [x] Test `JST-025`, suite lokal, parse JavaScript template, dan sinkronisasi template lulus sebelum deployment.
+- [x] Lima file terlacak GAS di-push tanpa `README.txt`, rahasia, ID privat, atau data buyer.
+- [x] Versi immutable baru dibuat dan deployment staging aktif yang sebelumnya `@13` diarahkan ke versi baru; deployment `@HEAD` dan produksi tidak diubah.
+- [x] Endpoint staging merespons HTTP 200 setelah deployment.
+- [x] Payload Dashboard staging yang disajikan memuat handler baru `container.replaceChildren(loadedImg)` dan tidak lagi memuat pola handler lama.
+- [x] Otorisasi sesi, validasi parent folder tenant, dan validasi MIME `image/*` tetap utuh pada backend.
+- [x] Bukti validasi, keterbatasan, dan rollback dicatat; `CHANGELOG.md` disinkronkan setelah status selesai.
+
+### Ruang lingkup
+
+- `PLAN.md`
+- `CHANGELOG.md`
+- Push lima file terlacak dari `04_Backend_GAS/` ke proyek GAS staging.
+- Versi immutable dan deployment Web App staging.
+- Smoke test HTTP serta browser dengan data sintetis.
+
+### Di luar ruang lingkup
+
+- Perubahan source aplikasi, backend, test, manifest, auth, sesi, schema, dependency, permission, atau OAuth scope.
+- Spreadsheet, Drive, akun, deployment, atau data produksi.
+- Penggunaan data buyer nyata, token privat dalam repository/log, merge, commit, dan push Git.
+
+### Risiko keamanan/data
+
+- Salah target deployment dapat memengaruhi produksi; identitas target wajib dibuktikan dari histori versi/deployment staging sebelum push.
+- Source remote GAS berubah saat `clasp push`; hanya lima file terlacak boleh terunggah dan rollback memakai versi immutable `@13`.
+- Smoke test wajib memakai akun serta file sintetis. Tenant isolation tetap diverifikasi server-side melalui `requireSession_` dan `assertFileInFolder_`.
+
+### Rencana implementasi
+
+1. Buat branch kerja dan catat task `IN_PROGRESS`.
+2. Validasi source `JST-025`, pasangan template, seluruh test, scope, dan pola rahasia.
+3. Push lima file GAS terlacak ke target staging yang terverifikasi.
+4. Buat versi immutable baru dan arahkan deployment staging dari `@13` ke versi tersebut tanpa mengubah deployment `@HEAD`.
+5. Jalankan smoke test HTTP dan verifikasi browser memakai data sintetis yang tersedia.
+6. Rollback deployment staging ke `@13` bila validasi pascadeploy gagal.
+7. Catat hasil, sinkronkan `CHANGELOG.md`, dan ubah status menjadi `DONE` bila acceptance criteria terpenuhi.
+
+### Rencana validasi
+
+1. `node tests/jst025_dashboard_image_render_check.js`.
+2. `for f in tests/jst*_check.js; do node "$f" || exit 1; done`.
+3. Parse JavaScript enam template HTML dan pastikan tiga pasangan template identik.
+4. `npx --no-install clasp status`, `clasp versions`, dan `clasp deployments` dengan ID disamarkan dari keluaran dokumentasi.
+5. `git diff --check`, audit file berubah, serta scan pola rahasia, URL/ID privat, dan data pribadi.
+6. HTTP 200 pada root serta Dashboard staging; verifikasi render sukses/gagal dan tenant isolation dengan data sintetis bila kredensial staging tersedia.
+
+### Rencana rollback
+
+Arahkan deployment staging yang sama kembali ke versi immutable `@13`. Versi baru dan histori deployment tidak dihapus. Tidak ada rollback schema/data karena tidak ada perubahan schema atau data.
+
+### Log aktivitas
+
+- [x] Baseline Git bersih pada commit `104ced6`; branch target belum ada.
+- [x] Target clasp terkonfigurasi dengan `rootDir` `04_Backend_GAS`; hanya lima file GAS terlacak, sedangkan `README.txt` tidak terlacak.
+- [x] Histori remote memuat versi staging `@13` dengan deskripsi `JST-024 konfirmasi url param staging 2026-08-27`; terdapat deployment `@HEAD` terpisah dan deployment staging aktif `@13`.
+- [x] Branch `chore/JST-027-rilis-fix-foto-dashboard` dibuat dari commit `104ced6`.
+- [x] Task dicatat sebagai `IN_PROGRESS` sebelum validasi atau perubahan remote.
+- [x] Preflight menjalankan sembilan test `JST-016`, `JST-018`, dan `JST-019` sampai `JST-025`; seluruhnya lulus.
+- [x] Tiga pasangan template kanonik/GAS identik dan JavaScript pada enam template berhasil di-parse.
+- [x] `git diff --check` awal menemukan blank line berlebih di EOF record `JST-027`; format `PLAN.md` diperbaiki tanpa mengubah histori atau source aplikasi.
+- [x] Pemeriksaan ulang `git diff --check` lulus; hanya `PLAN.md` berubah dan scan pola secret/URL privat bersih.
+- [x] `npx --no-install clasp push` berhasil mengunggah tepat lima file terlacak GAS; `04_Backend_GAS/README.txt` tidak terunggah.
+- [x] Setelah push, versi immutable terakhir tetap `@13` dan deployment staging tetap menunjuk `@13`; deployment `@HEAD` tidak dikonfigurasi ulang.
+- [x] Versi immutable `@14` dibuat dengan deskripsi `JST-027 fix foto dashboard staging 2026-08-27`; rollback tetap tersedia pada `@13`.
+- [x] Deployment staging aktif diperbarui dari `@13` ke `@14`; deployment `@HEAD` tetap ada dan tidak diubah.
+- [x] Percobaan verifikasi HTTP pertama via client Node timeout setelah 30 detik saat menunggu respons berurutan; tidak ada perubahan deployment. Validasi diulang memakai request paralel dengan batas waktu eksplisit.
+- [x] Smoke test HTTP pascadeploy staging `@14` mengembalikan HTTP 200 pada root, Login, dan Dashboard; payload Dashboard terverifikasi memuat handler fix `container.replaceChildren(loadedImg)` dan tidak memuat handler lama.
+- [x] Master memilih `commit dan push` pada 2026-08-27.
+- [ ] Push Git menunggu remote repository; `git remote` tidak memiliki entri sehingga tujuan push belum tersedia.
+
+### Hasil validasi
+
+- [x] `node tests/jst025_dashboard_image_render_check.js`: `JST-025 dashboard image render unit check passed.`
+- [x] Suite lokal lengkap: seluruh sembilan test (`JST-016`, `JST-018`, `JST-019` s/d `JST-025`) lulus.
+- [x] Sinkronisasi template: `All template pairs identical.`
+- [x] Parser JavaScript template: `All template scripts parsed cleanly.`
+- [x] `npx --no-install clasp push`: lima file GAS terlacak berhasil diunggah; `README.txt` tetap tidak terunggah.
+- [x] Versi immutable `@14` dibuat dengan deskripsi `JST-027 fix foto dashboard staging 2026-08-27`.
+- [x] Deployment staging aktif diperbarui dari `@13` ke `@14`; deployment `@HEAD` tidak diubah.
+- [x] Smoke test HTTP pascadeploy: root, Login, dan Dashboard merespons HTTP 200; payload Dashboard memuat `container.replaceChildren(loadedImg)` dan `getJastiperImageData(state.sessionToken,url)`.
+- [ ] Verifikasi visual antarmuka browser live pada Dashboard staging dilakukan jastiper/operator dengan akun/data sintetis yang sedang login.
+
+### Catatan review
+
+Pekerjaan `JST-027` diselesaikan secara mandiri setelah Master memberi approval eksekusi rilis staging. Perubahan remote terbatas pada deployment staging `@14`; tidak ada perubahan source aplikasi, backend, auth, schema, spreadsheet/drive produksi, atau deployment produksi. Agen menunggu konfirmasi pilihan Master untuk tindakan Git selanjutnya.
