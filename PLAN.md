@@ -1872,3 +1872,12 @@ Revert perubahan `[JST-023]`. Jika deployment staging kelak disetujui dan bermas
 ### Catatan review
 
 Review manusia menyetujui penutupan, sinkronisasi `CHANGELOG.md`, commit branch, push source GAS, dan deployment staging pada 2026-08-27 melalui teks `approval 1 dan 2`. Merge `main`, deployment produksi, dan operasi data produksi tetap tidak dilakukan.
+
+### Bukti deployment staging
+
+- [x] `npx @google/clasp push`: 5 file GAS terlacak berhasil diunggah; `README.txt` tetap tidak diunggah.
+- [x] Versi immutable `@11` dibuat dengan deskripsi `JST-023 save settings dashboard staging 2026-08-27`.
+- [x] Deployment staging sebelumnya `@10` diperbarui ke `@11`; deployment `@HEAD` tidak diubah.
+- [x] Smoke test HTTP staging: root dan Dashboard merespons HTTP 200; payload Dashboard memuat handler `saveSettings` dan helper `busy(btn,on,text)`.
+- [ ] Uji klik simpan terautentikasi dengan akun/rekening sintetis belum dijalankan karena kredensial staging sintetis tidak tersedia di workspace. Tidak ada data produksi dipakai.
+- Rollback staging: redeploy deployment staging yang sama ke versi terverifikasi `@10`.
