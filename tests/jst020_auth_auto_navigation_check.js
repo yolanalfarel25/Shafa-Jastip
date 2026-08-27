@@ -19,20 +19,18 @@ const konfirmasiHtml = fs.readFileSync(konfirmasiHtmlPath, 'utf8');
 const script = new vm.Script(codeGs);
 assert.ok(script, 'Code.gs syntax check OK');
 
-// 3. Check manual top-navigation links use trusted server-bound URL
+// 3. Check automatic top-level navigation using server-bound URL
 assert.ok(loginHtml.includes('const webAppUrl = "<?= typeof webAppUrl !== \'undefined\' ? webAppUrl : \'\' ?>";'), 'Login.html has webAppUrl');
-assert.ok(loginHtml.includes('id="navManualLink"'), 'Login.html has manual navigation link');
-assert.ok(loginHtml.includes('target="_top"'), 'Login.html manual link targets top');
-assert.ok(loginHtml.includes("showManualNav('dashboard', 'Buka Dashboard')"), 'Login.html shows Dashboard link after auth');
-assert.ok(!loginHtml.includes('.click();'), 'Login.html has no programmatic navigation click');
-assert.ok(!loginHtml.includes('function navigatePage(page)'), 'Login.html has no automatic navigation helper');
+assert.ok(loginHtml.includes('function navigatePage(page)'), 'Login.html has navigatePage');
+assert.ok(loginHtml.includes('window.top.location.replace(target)'), 'Login.html targets top viewport');
+assert.ok(loginHtml.includes('navigatePage(\'dashboard\')'), 'Login.html automatically navigates to dashboard on auth');
+assert.ok(!loginHtml.includes('id="navManualLink"'), 'Login.html has no manual link button');
 
 assert.ok(dashboardHtml.includes('const webAppUrl = "<?= typeof webAppUrl !== \'undefined\' ? webAppUrl : \'\' ?>";'), 'Dashboard.html has webAppUrl');
-assert.ok(dashboardHtml.includes('id="navManualLink"'), 'Dashboard.html has manual navigation link');
-assert.ok(dashboardHtml.includes('target="_top"'), 'Dashboard.html manual link targets top');
-assert.ok(dashboardHtml.includes("showManualNav('login', 'Kembali ke Login')"), 'Dashboard.html shows Login link after logout/session failure');
-assert.ok(!dashboardHtml.includes('.click();'), 'Dashboard.html has no programmatic navigation click');
-assert.ok(!dashboardHtml.includes('function navigatePage(page)'), 'Dashboard.html has no automatic navigation helper');
+assert.ok(dashboardHtml.includes('function navigatePage(page)'), 'Dashboard.html has navigatePage');
+assert.ok(dashboardHtml.includes('window.top.location.replace(target)'), 'Dashboard.html targets top viewport');
+assert.ok(dashboardHtml.includes('navigatePage(\'login\')'), 'Dashboard.html navigates to login on logout/session expiry');
+assert.ok(!dashboardHtml.includes('id="navManualLink"'), 'Dashboard.html has no manual link button');
 
 // 4. Test doGet in vm sandbox
 const fakePropertiesService = {
@@ -110,4 +108,4 @@ assert.strictEqual(evaluatedTemplates.length, 4);
 assert.strictEqual(evaluatedTemplates[3].filename, 'Login');
 assert.strictEqual(evaluatedTemplates[3].webAppUrl, 'https://script.google.com/macros/s/STAGING_ID/exec');
 
-console.log('JST-017 auth navigation unit check passed.');
+console.log('JST-020 auth auto-navigation unit check passed.');

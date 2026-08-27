@@ -34,10 +34,6 @@
       <div class="hello"><h2 id="helloName">Dashboard</h2><p id="helloSub"></p></div>
       <button id="logoutBtn" class="btn outline">Keluar</button>
     </div>
-    <div id="manualNav" style="display:none;margin-bottom:14px;text-align:center">
-      <a id="navManualLink" href="#" target="_top" class="btn primary" style="display:inline-block;text-decoration:none">Kembali ke Login</a>
-    </div>
-
     <div class="share">
       <small>LINK KONFIRMASI BUYER</small>
       <h3>Bagikan link ini ke pembeli Anda</h3>
@@ -86,18 +82,14 @@
 <script>
   const webAppUrl = "<?= typeof webAppUrl !== 'undefined' ? webAppUrl : '' ?>";
 
-  function showManualNav(page, labelText) {
-    const base = webAppUrl || '';
-    const target = base ? (base + '?page=' + encodeURIComponent(page)) : ('?page=' + encodeURIComponent(page));
-    const box = document.querySelector('#manualNav');
-    const link = document.querySelector('#navManualLink');
-    if (box && link) {
-      link.href = target;
-      link.textContent = labelText || 'Kembali ke Login';
-      if (page === 'login') {
-        document.querySelectorAll('#app > :not(#manualNav)').forEach(el => el.style.display = 'none');
-      }
-      box.style.display = 'block';
+  function navigatePage(page) {
+    const target = webAppUrl
+      ? (webAppUrl + '?page=' + encodeURIComponent(page))
+      : ('?page=' + encodeURIComponent(page));
+    try {
+      window.top.location.replace(target);
+    } catch (error) {
+      window.location.replace(target);
     }
   }
 
@@ -180,8 +172,8 @@
       busy(btn,false,'Simpan Pengaturan');
       if(res.sessionInvalidated){
         localStorage.removeItem('jastipSession');state.sessionToken='';
-        alert('Email diperbarui. Silakan klik tombol untuk login kembali.');
-        showManualNav('login', 'Kembali ke Login');return;
+        alert('Email diperbarui. Silakan login kembali.');
+        navigatePage('login');return;
       }
       state.profile=res.profile;state.shareUrl=res.shareUrl;showApp();alert('Pengaturan tersimpan.');
     })
@@ -193,8 +185,8 @@
     const t=state.sessionToken;localStorage.removeItem('jastipSession');state.sessionToken='';
     $('#logoutBtn').disabled=true;
     google.script.run
-      .withSuccessHandler(()=>showManualNav('login', 'Kembali ke Login'))
-      .withFailureHandler(()=>showManualNav('login', 'Kembali ke Login'))
+      .withSuccessHandler(()=>navigatePage('login'))
+      .withFailureHandler(()=>navigatePage('login'))
       .logoutJastiper(t);
   };
 
@@ -205,11 +197,11 @@
       .withSuccessHandler(authSuccess)
       .withFailureHandler(()=>{
         localStorage.removeItem('jastipSession');
-        showManualNav('login', 'Kembali ke Login');
+        navigatePage('login');
       })
       .getJastiperSession(saved);
   } else {
-    showManualNav('login', 'Kembali ke Login');
+    navigatePage('login');
   }
 </script>
 </body>

@@ -75,9 +75,6 @@
           <button id="signupSubmitBtn" class="primary" type="submit">Buat Akun Jastip <svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></button>
         </form>
         <div id="notice" class="notice" role="status"><b id="noticeIcon">✓</b><span id="noticeText"></span></div>
-        <div id="manualNav" style="display:none;margin-top:14px;text-align:center">
-          <a id="navManualLink" href="#" target="_top" class="primary" style="text-decoration:none;display:inline-flex">Buka Dashboard</a>
-        </div>
         <p class="switch" id="switchText">Belum punya akun jastip? <button id="switchBtn" type="button">Daftar sekarang</button></p>
       </div>
       <p class="security"><svg viewBox="0 0 24 24"><rect x="4.5" y="10" width="15" height="10" rx="2.5"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/></svg>Data Anda dilindungi dengan koneksi terenkripsi</p>
@@ -137,23 +134,19 @@
 
     const webAppUrl = "<?= typeof webAppUrl !== 'undefined' ? webAppUrl : '' ?>";
 
-    function showManualNav(page, labelText) {
-      const base = webAppUrl || '';
-      const target = base ? (base + '?page=' + encodeURIComponent(page)) : ('?page=' + encodeURIComponent(page));
-      const box = $('#manualNav');
-      const link = $('#navManualLink');
-      if (box && link) {
-        link.href = target;
-        link.textContent = labelText || 'Buka Dashboard';
-        box.style.display = 'block';
+    function navigatePage(page) {
+      const target = webAppUrl
+        ? (webAppUrl + '?page=' + encodeURIComponent(page))
+        : ('?page=' + encodeURIComponent(page));
+      try {
+        window.top.location.replace(target);
+      } catch (error) {
+        window.location.replace(target);
       }
     }
 
     const savedSession=localStorage.getItem('jastipSession');
-    if(savedSession){
-      showNotice('Sesi login terdeteksi. Silakan lanjutkan ke Dashboard.', false);
-      showManualNav('dashboard', 'Lanjut ke Dashboard');
-    }
+    if(savedSession) navigatePage('dashboard');
 
     function busy(btn,on,text){
       btn.disabled=on;
@@ -162,8 +155,7 @@
 
     function authSuccess(res){
       localStorage.setItem('jastipSession', res.sessionToken);
-      showNotice('Berhasil! Silakan klik tombol di bawah untuk membuka Dashboard.', false);
-      showManualNav('dashboard', 'Buka Dashboard');
+      navigatePage('dashboard');
     }
 
     loginForm.addEventListener('submit',e=>{
