@@ -1779,3 +1779,96 @@ Implementasi dan penutupan JST-022 disetujui pengguna pada 2026-08-27 melalui te
 - Smoke test DOM Chromium headless desktop `1280x1200` dan mobile `390x844`: klik tab Pengaturan Jastip berhasil menambahkan class `active` pada tombol settings dan panel `#settings`, serta menghapus class `active` dari panel `#orders`.
 - Suite test lokal JST-016 hingga JST-022, parse JavaScript template HTML, sinkronisasi template, `git diff --check`, dan secret scan: lulus.
 - Rollback deployment staging tersedia dengan redeploy ke versi `@9`. Operasi data/resource produksi tidak dijalankan.
+
+
+---
+
+## JST-023 — Perbaikan tombol Simpan Pengaturan Dashboard
+
+- **Status:** `DONE`
+- **Jenis:** `fix`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-27
+- **Approval implementasi:** pengguna, 2026-08-27, teks `approved jdt 023`.
+- **Approval penutupan dan staging:** pengguna, 2026-08-27, teks `approval 1 dan 2`; mencakup `CHANGELOG.md`, commit branch, push source GAS, dan deployment staging. Tidak mencakup merge `main` atau deployment produksi.
+
+### Tujuan
+
+Memulihkan fungsi tombol `Simpan Pengaturan` agar validasi rekening berjalan, permintaan `updateJastiperSettings` dikirim sekali, dan status tombol pulih setelah sukses atau gagal.
+
+### Acceptance criteria
+
+- [x] Klik `Simpan Pengaturan` dengan profil dan rekening valid memanggil `updateJastiperSettings` tepat sekali.
+- [x] Tombol dinonaktifkan dan berteks `Menyimpan…` selama permintaan berlangsung.
+- [x] Tombol aktif kembali dan berteks `Simpan Pengaturan` setelah callback sukses atau gagal.
+- [x] Validasi rekening kosong/tidak lengkap tetap mencegah permintaan backend dan menampilkan pesan yang ada.
+- [x] Template `02_Dashboard_Jastiper/Dashboard.html` dan `04_Backend_GAS/Dashboard.html` tetap identik.
+- [x] Seluruh test lokal dan parse JavaScript lulus tanpa regresi.
+
+### Ruang lingkup
+
+- `02_Dashboard_Jastiper/Dashboard.html`
+- `04_Backend_GAS/Dashboard.html`
+- `tests/jst023_dashboard_save_settings_check.js`
+- `PLAN.md`
+
+### Di luar ruang lingkup
+
+- Perubahan `04_Backend_GAS/Code.gs`, kontrak `updateJastiperSettings`, auth, sesi, atau tenant isolation.
+- Perubahan schema Spreadsheet, data rekening tersimpan, Script Properties, manifest, atau OAuth scope.
+- Merge ke `main`, deployment staging, deployment produksi, dan operasi data.
+
+### Bukti investigasi
+
+- Handler klik ada dan mengumpulkan payload rekening sebelum memanggil backend.
+- Handler memanggil `busy(btn,true,'Menyimpan…')`, tetapi `Dashboard.html` tidak mendefinisikan `busy()`.
+- `busy()` hanya tersedia pada template Login; fungsi antarhalaman HTML tidak berbagi scope JavaScript.
+- Akibatnya klik valid melempar `ReferenceError: busy is not defined` sebelum `google.script.run.updateJastiperSettings`, sehingga backend tidak dipanggil.
+- Test JST-018 menguji backend langsung dan test JST-022 hanya menguji navigasi tab; keduanya tidak mengeksekusi alur klik simpan.
+
+### Risiko keamanan/data
+
+- Form memuat profil dan rekening sensitif; test wajib memakai data sintetis dan tidak mencetak payload/token.
+- Perbaikan hanya menambahkan helper status tombol client-side. Validasi dan otorisasi server-side tetap tidak berubah.
+- Security review memastikan permintaan tetap memakai session token dari state, tidak memasukkan token ke URL/log, dan tidak melemahkan failure handling.
+
+### Rencana implementasi
+
+1. Setelah approval, buat branch `fix/JST-023-save-pengaturan-dashboard` dari baseline terintegrasi JST-022.
+2. Tambahkan definisi minimal helper `busy(btn,on,text)` pada Dashboard sebelum pemakaian pertama.
+3. Sinkronkan template Dashboard kanonik dan deployment.
+4. Tambahkan test runnable yang mengeksekusi klik simpan dengan mock DOM dan `google.script.run`, termasuk jalur valid, validasi gagal, callback sukses, dan callback gagal.
+
+### Rencana validasi
+
+1. Jalankan `node tests/jst023_dashboard_save_settings_check.js`.
+2. Jalankan seluruh test `tests/jst*_check.js`.
+3. Parse seluruh script JavaScript dalam template HTML memakai `vm.Script`.
+4. Verifikasi kedua template Dashboard identik.
+5. Jalankan `git diff --check`, tinjau scope diff, dan scan rahasia/data pribadi.
+6. Jika deployment staging disetujui terpisah, uji simpan dengan akun serta rekening sintetis dan verifikasi data tenant yang sama tanpa mencatat nilainya.
+
+### Rencana rollback
+
+Revert perubahan `[JST-023]`. Jika deployment staging kelak disetujui dan bermasalah, redeploy versi staging terakhir yang terverifikasi (`@10`). Tidak ada migrasi atau perubahan schema/data untuk dipulihkan.
+
+### Hasil validasi
+
+- [x] Test RED sebelum implementasi: `node tests/jst023_dashboard_save_settings_check.js` gagal melempar assertion ketiadaan helper `busy` di Dashboard.
+- [x] Test GREEN setelah implementasi: `node tests/jst023_dashboard_save_settings_check.js` lulus.
+- [x] Suite test lokal lengkap lulus:
+  - `tests/jst016_resource_config_check.js`
+  - `tests/jst018_multi_rekening_check.js`
+  - `tests/jst019_item_photo_action_check.js`
+  - `tests/jst020_auth_auto_navigation_check.js`
+  - `tests/jst021_confirmation_logo_check.js`
+  - `tests/jst022_dashboard_tabs_check.js`
+  - `tests/jst023_dashboard_save_settings_check.js`
+- [x] Parser JavaScript seluruh template HTML (`Login`, `Dashboard`, `Konfirmasi` kanonik & GAS): lulus tanpa error sintaks.
+- [x] Sinkronisasi template: `02_Dashboard_Jastiper/Dashboard.html` dan `04_Backend_GAS/Dashboard.html` identik (`cmp -s`).
+- [x] `git diff --check`: lulus bersih.
+- [x] Scan rahasia dan data pribadi pada diff/workspace: lulus bersih; hanya data sintetis uji yang dipakai.
+
+### Catatan review
+
+Review manusia menyetujui penutupan, sinkronisasi `CHANGELOG.md`, commit branch, push source GAS, dan deployment staging pada 2026-08-27 melalui teks `approval 1 dan 2`. Merge `main`, deployment produksi, dan operasi data produksi tetap tidak dilakukan.

@@ -98,6 +98,7 @@
   const state={sessionToken:'',profile:null,shareUrl:'',observer:null};
   const $=s=>document.querySelector(s);
   const esc=v=>String(v||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  function busy(btn,on,text){btn.disabled=on;if(text)btn.textContent=text}
 
 
   function authSuccess(res){

@@ -28,6 +28,7 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 - Navigasi login, signup, logout, dan sesi invalid mengalihkan viewport top-level otomatis (`JST-020`).
 - Logo Konfirmasi buyer memakai data URI PNG inline dari aset resmi agar tampil pada GAS (`JST-021`).
 - Tab `Data Buyer` dan `Pengaturan Jastip` pada Dashboard Jastiper kini berpindah panel sesuai klik (`JST-022`).
+- Tombol `Simpan Pengaturan` Dashboard kembali mengirim profil dan rekening valid serta memulihkan status tombol setelah respons (`JST-023`).
 
 ## Aturan pencatatan
 
