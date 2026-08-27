@@ -1981,6 +1981,13 @@ Revert perubahan branch `fix/JST-024-konfirmasi-url-param`. Jika telah dideploy 
 
 ### Catatan review
 
-- Perubahan runtime staging belum diverifikasi karena deployment staging belum disetujui.
-- `CHANGELOG.md`, commit, clasp push, merge `main`, dan deployment belum dilakukan. Semua memerlukan review/approval lanjutan sesuai governance.
-- Rollback source: revert perubahan `[JST-024]`. Rollback staging, jika deployment kelak disetujui: redeploy versi `@11`.
+Review manusia menyetujui penutupan, sinkronisasi `CHANGELOG.md`, commit branch, push source GAS, dan deployment staging pada 2026-08-27 melalui teks `APPROVE JST-024 PENUTUPAN DAN STAGING`. Merge `main`, deployment produksi, dan operasi data produksi tetap tidak dilakukan.
+
+### Bukti deployment staging
+
+- [x] `npx @google/clasp push`: 5 file GAS terlacak berhasil diunggah; `README.txt` tetap tidak diunggah.
+- [x] Versi immutable `@12` dan `@13` dibuat dengan deskripsi `JST-024 konfirmasi url param staging 2026-08-27`; `@12` tidak terdeploy dan dipertahankan sebagai histori, `@13` menjadi versi aktif staging.
+- [x] Deployment staging sebelumnya `@11` diperbarui ke `@13`; deployment `@HEAD` tidak diubah.
+- [x] Smoke test HTTP staging: root dan Konfirmasi dengan parameter query merespons HTTP 200; payload memuat `google.script.url.getLocation` serta fallback `URLSearchParams`.
+- [ ] Verifikasi render nomor rekening di browser staging dilakukan oleh jastiper/operator dengan membuka link jastip staging sintetis valid (`?shop=...`). Tidak ada data produksi atau token privat yang dicatat ke repository.
+- Rollback staging: redeploy deployment staging yang sama ke versi terverifikasi `@11`.
