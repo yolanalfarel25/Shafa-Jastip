@@ -1531,6 +1531,78 @@ Mengganti alur konfirmasi tombol manual `target="_top"` menjadi pengalihan otoma
 
 Revert perubahan `[JST-020]` kembali ke tautan manual `target="_top"`.
 
+## JST-021 — Perbaiki logo pada halaman konfirmasi buyer
+
+- **Status:** `REVIEW`
+- **Jenis:** `fix`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-27
+- **Approval:** pengguna (Master), 2026-08-27, dengan teks `oke, approve jst 021`.
+
+### Tujuan
+
+Menampilkan logo resmi Jastip Apps pada halaman Konfirmasi buyer di Google Apps Script Web App tanpa bergantung pada path file repository yang tidak disajikan sebagai aset HTTP.
+
+### Acceptance criteria
+
+- [x] Logo resmi tampil pada halaman Konfirmasi buyer; teks alternatif tidak muncul akibat gambar gagal dimuat.
+- [x] Payload gambar inline setelah didekode memiliki SHA-256 yang sama dengan `assets/logo-jastip-apps.png`: `1904387888d5a1a4c5672429d4db3b6167a821b630ee431ddb4ffa148c8e55ab`.
+- [x] Source kanonik dan template deployment Konfirmasi identik.
+- [x] Tidak ada URL aset eksternal, dependency baru, perubahan backend, atau perubahan alur data buyer.
+
+### Ruang lingkup
+
+- `PLAN.md`
+- `03_Konfirmasi_Pembelian/Konfirmasi.html`
+- `04_Backend_GAS/Konfirmasi.html`
+- `assets/logo-jastip-apps.png` sebagai sumber read-only
+- `tests/jst021_confirmation_logo_check.js`
+
+### Di luar ruang lingkup
+
+- Perubahan desain logo atau layout halaman.
+- Perubahan backend, auth, upload, manifest, scope OAuth, atau dependency.
+- Commit, merge, deployment staging/produksi, dan operasi data.
+
+### Risiko keamanan/data
+
+- URL eksternal dapat menambah tracking dan ketergantungan jaringan; karena itu logo harus inline.
+- Payload inline wajib berasal dari aset repository resmi dan diverifikasi hash.
+- Perubahan tidak boleh menyentuh link edit, token, data buyer, upload, atau tenant isolation.
+
+### Rencana implementasi
+
+1. Bekerja pada branch `fix/JST-021-logo-konfirmasi-buyer` tanpa bekerja di `main`.
+2. Ganti hanya path logo relatif dengan data URI PNG dari aset resmi.
+3. Sinkronkan template deployment Konfirmasi.
+4. Tambah test lokal untuk path relatif, format data URI, hash payload, dan sinkronisasi template.
+
+### Rencana validasi
+
+1. Jalankan `node tests/jst021_confirmation_logo_check.js`.
+2. Parse JavaScript template Konfirmasi, bandingkan source kanonik dengan salinan deployment, lalu jalankan `git diff --check`.
+3. Scan diff untuk secret/data pribadi dan pastikan perubahan hanya pada scope.
+4. Cek visual pada staging setelah approval deployment terpisah.
+
+### Rencana rollback
+
+Revert perubahan `[JST-021]` pada dua template Konfirmasi dan test terkait. Deployment rollback memerlukan approval terpisah; jangan memakai reset histori bersama.
+
+### Hasil validasi
+
+- [x] `node tests/jst021_confirmation_logo_check.js`: lulus (`JST-021 confirmation logo check passed.`).
+- [x] Template deployment `04_Backend_GAS/Konfirmasi.html` identik dengan `03_Konfirmasi_Pembelian/Konfirmasi.html`.
+- [x] Hash SHA-256 logo inline Konfirmasi cocok dengan `assets/logo-jastip-apps.png`: `1904387888d5a1a4c5672429d4db3b6167a821b630ee431ddb4ffa148c8e55ab`.
+- [x] Parse JavaScript script tags `Konfirmasi.html` lulus (`node --check`).
+- [x] `git diff --check`: lulus; tidak ada trailing whitespace.
+- [x] Diff secret scan: lulus; tidak ada secret, token, password, atau URL deployment privat.
+
+### Catatan review
+
+Implementasi JST-021 selesai di branch `fix/JST-021-logo-konfirmasi-buyer`. Status diubah menjadi `REVIEW`. Menunggu approval integrasi/deploy sebelum merge dan deployment staging.
+
+---
+
 ## Template item baru
 
 Salin blok berikut. Jangan menghapus item lama.
