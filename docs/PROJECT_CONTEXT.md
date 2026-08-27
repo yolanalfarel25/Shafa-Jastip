@@ -191,7 +191,7 @@ Validasi runtime wajib memakai staging:
 | Scope/permission | `appsscript.json`, `Code.gs`, `SECURITY.md` |
 | Skema Sheets | `Code.gs`, rencana migrasi, ADR |
 | Branding/UI | HTML sasaran dan aset |
-| Deployment | manifest, runbook lingkungan, approval terpisah |
+| Deployment | manifest, runbook lingkungan, konfirmasi khusus lingkungan/risiko |
 
 ## Perintah dan konvensi
 

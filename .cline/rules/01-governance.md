@@ -1,37 +1,47 @@
-# Governance wajib Jastip Apps
+# Governance Jastip Apps
 
 ## Urutan kerja
 
-1. Baca `AGENTS.md`, `PLAN.md`, `SECURITY.md`, dan `docs/PROJECT_CONTEXT.md`.
-2. Observe tanpa mengubah file.
-3. Buat/perbarui item `PROPOSED` di `PLAN.md`.
-4. Tunggu manusia mengubah status menjadi `APPROVED`.
-5. Buat branch fitur sesuai ID.
-6. Baca ulang file sasaran, lalu buat diff terkecil.
-7. Validasi sesuai rencana.
-8. Catat bukti dan ubah status menjadi `REVIEW`.
-9. Tunggu approval manusia sebelum `DONE`, commit penutupan, merge, atau deployment.
+1. **Intake & Plan (Plan Mode)**:
+   - Agen membaca konteks yang diperlukan (cukup sekali per sesi; gunakan ulang konteks yang sudah dipahami).
+   - Petakan masalah memakai alur BMAD yang fokus pada inti masalah.
+   - Sajikan proposal plan di chat tanpa mengubah repository.
+2. **Approval via Act Mode**:
+   - Manusia menyetujui rencana dengan berpindah ke **Act Mode** (atau mengirim prompt saat Act Mode aktif).
+   - Perpindahan mode ini adalah approval resmi untuk ruang lingkup yang tertulis dalam plan.
+3. **Eksekusi mandiri (Act Mode)**:
+   - Agen mencatat/memperbarui item di `PLAN.md` dengan status `IN_PROGRESS`.
+   - Buat/gunakan branch kerja sesuai ID (contoh: `feat/JST-NNN-ringkasan`).
+   - Periksa file sasaran sebelum edit; buat diff terkecil yang tepat sasaran.
+   - Jalankan pekerjaan secara hati-hati sampai selesai tanpa meminta approval rutin berulang.
+4. **Validasi & Selesai**:
+   - Jalankan validasi sesuai rencana dan catat bukti nyata.
+   - Ubah status item di `PLAN.md` menjadi `DONE` serta sinkronkan `CHANGELOG.md`.
+5. **Konfirmasi penutupan**:
+   - Setelah seluruh pekerjaan selesai, tanyakan konfirmasi kepada Master: apakah ingin melakukan commit, commit + push, atau tidak melakukan commit/push.
 
-## Larangan
+## Gate eskalasi ke Master
 
-- Jangan edit source, test, manifest, konfigurasi, atau dokumen kendali tanpa item `APPROVED`.
-- Jangan bekerja langsung di `main`.
-- Jangan memperbesar scope diam-diam.
-- Jangan mengubah test untuk menyembunyikan kegagalan.
-- Jangan menambah dependency tanpa alasan dan approval.
-- Jangan menjalankan operasi produksi, deployment, migrasi, penghapusan, reset, rebase, amend, atau force push tanpa approval khusus.
-- Jangan mengklaim test lulus tanpa command dan hasil.
+Agen wajib berhenti dan memberi tahu Master hanya jika:
+
+- Perubahan perlu menyentuh file atau fungsi lain di luar ruang lingkup plan.
+- Terdapat potensi benturan, regresi, atau kerusakan fungsi yang bersinggungan.
+- Ditemukan perubahan lokal milik pengguna yang berisiko tertimpa.
+- Memerlukan operasi berisiko tinggi atau sulit dibalik: modifikasi data produksi, deployment produksi, migrasi schema destruktif, penghapusan resource, force push, reset hard, atau rebase histori bersama.
+- Asumsi keamanan atau isolasi data tidak dapat dibuktikan.
+
+Untuk bug, perbaikan sintaks, dan penyesuaian lokal dalam ruang lingkup plan yang sudah disetujui, agen menyelesaikan langsung tanpa meminta approval tambahan.
 
 ## Gate keamanan
 
-Security review wajib untuk auth, sesi, token, upload, OAuth, permission, sharing, Script Properties, data sensitif, integrasi eksternal, serta operasi produksi.
+- Semua input browser dianggap tidak tepercaya; otorisasi dan tenant isolation wajib server-side.
+- Jangan simpan atau cetak rahasia, token, password, ID privat, atau data buyer di Git/log.
+- Perubahan auth, sesi, token, upload Drive, permission, scope OAuth, dan Script Properties tetap memerlukan security review oleh agen sebelum diselesaikan.
+- Approval implementasi bukan persetujuan deployment produksi atau modifikasi data produksi.
 
-Semua input browser tidak tepercaya. Otorisasi dan tenant isolation wajib server-side. Jangan simpan atau cetak rahasia/data buyer.
-
-## Histori
+## Histori & Git
 
 - Jangan hapus item rencana atau ADR lama.
-- Commit: `type(scope): ringkasan [JST-NNN]`.
-- Sinkronkan `CHANGELOG.md` setelah review manusia.
-- Keputusan besar dicatat di `docs/decisions/`.
-- Approval implementasi tidak berarti approval deployment.
+- Format commit: `type(scope): ringkasan [JST-NNN]`.
+- Keputusan arsitektur atau keamanan lintas task dicatat di `docs/decisions/`.
+- Jangan commit atau push otomatis; selalu tunggu konfirmasi pilihan dari Master di akhir task.

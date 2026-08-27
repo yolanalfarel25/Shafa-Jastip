@@ -20,7 +20,7 @@ Perbaikan lokal kecil tidak memerlukan ADR bila sudah cukup dicatat di `PLAN.md`
 
 Status tambahan: `REJECTED`, `DEPRECATED`.
 
-Hanya manusia yang menerima atau menolak ADR.
+Manusia menerima ADR melalui approval scope saat berpindah ke Act Mode atau melalui keputusan eksplisit. Agen tidak menerima ADR di luar scope yang disetujui.
 
 ## Penamaan
 
@@ -34,11 +34,9 @@ Jangan mengganti isi keputusan lama untuk menyembunyikan perubahan. Buat ADR bar
 
 ## Indeks
 
-Belum ada ADR yang diterima.
-
 | ID | Judul | Status | Tanggal | PLAN ID |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| ADR-001 | Workflow approval melalui Act Mode | ACCEPTED | 2026-08-27 | JST-026 |
 
 ## Template
 
@@ -97,3 +95,4 @@ Belum diputuskan.
 ## Rollback atau strategi keluar
 
 -
+```

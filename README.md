@@ -2,7 +2,7 @@
 
 Aplikasi jastip berbasis Google Apps Script (GAS), Google Sheets, Google Drive, dan tiga antarmuka HTML.
 
-> **Status:** tahap prabuild. Perubahan fitur belum boleh dimulai sebelum `PLAN.md` disetujui dan baseline Git tersedia.
+> **Status:** pengembangan staging. Perubahan dipetakan di Plan Mode dan mulai dikerjakan setelah pengguna berpindah ke Act Mode.
 
 ## Struktur proyek
 
@@ -29,16 +29,14 @@ Aplikasi jastip berbasis Google Apps Script (GAS), Google Sheets, Google Drive, 
 
 ## Aturan sebelum perubahan
 
-1. Baca `AGENTS.md`, `PLAN.md`, dan dokumen terkait di `docs/`.
-2. Catat pekerjaan sebagai item teragenda di `PLAN.md`.
-3. Tulis tujuan, ruang lingkup, file sasaran, risiko, pengujian, dan rollback.
-4. Dapatkan persetujuan manusia sebelum mengubah source code.
-5. Buat branch baru. Jangan bekerja langsung pada `main`.
-6. Terapkan perubahan terkecil.
-7. Jalankan pemeriksaan yang relevan.
-8. Catat hasil di `CHANGELOG.md` dan, bila menyangkut keputusan teknis, di `docs/decisions/`.
-9. Commit dengan pesan jelas. Satu commit untuk satu perubahan logis.
-10. Deployment, perubahan data, kredensial, dan operasi destruktif selalu butuh persetujuan eksplisit.
+1. Pada Plan Mode, petakan Business, Model, Architecture, dan Delivery lalu sajikan plan di chat.
+2. Perpindahan pengguna ke Act Mode menyetujui implementasi sesuai scope plan.
+3. Pada Act Mode, catat task di `PLAN.md`, buat branch, dan kerjakan sampai validasi serta dokumentasi selesai.
+4. Gunakan ulang konteks sesi yang masih valid; baca file sasaran sebelum edit dan konteks tambahan hanya bila diperlukan.
+5. Terapkan perubahan terkecil. Jangan bekerja langsung pada branch utama.
+6. Eskalasi hanya bila perlu menyentuh fungsi/file di luar plan, berisiko merusak/menimpa, gagal membuktikan keamanan, atau memerlukan operasi khusus.
+7. Setelah selesai, tanyakan pilihan commit + push, commit saja, atau tidak keduanya.
+8. Deployment/operasi produksi, perubahan data destruktif, merge, dan rewrite histori memerlukan konfirmasi khusus.
 
 ## Menjalankan proyek
 
@@ -57,7 +55,7 @@ Detail operasional wajib ditulis setelah lingkungan GAS aktual dikonfirmasi. Jan
 
 ## Dokumen kendali
 
-- `AGENTS.md` — kontrak kerja agen dan approval gate.
+- `AGENTS.md` — kontrak kerja agen, approval Act Mode, dan gate eskalasi.
 - `PLAN.md` — backlog, agenda, dan status pekerjaan.
 - `CHANGELOG.md` — histori perubahan yang telah selesai.
 - `SECURITY.md` — kebijakan keamanan dan pelaporan.
@@ -75,4 +73,4 @@ Detail operasional wajib ditulis setelah lingkungan GAS aktual dikonfirmasi. Jan
 - Terapkan validasi file server-side: MIME, ukuran, ekstensi, dan batas jumlah.
 - Tetapkan retensi serta penghapusan data buyer dan bukti transfer.
 - Gunakan Spreadsheet dan Folder staging terpisah dari produksi.
-- Lindungi branch `main` dan wajibkan review manusia.
+- Lindungi branch utama dan lakukan review manusia melalui konfirmasi commit/push atau proses merge.

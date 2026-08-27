@@ -1,17 +1,15 @@
 # BMAD — Jastip Apps
 
-BMAD dipakai sebagai alur kerja sebelum build dan pada setiap perubahan: **Business, Model, Architecture, Delivery**.
+BMAD dipakai sebagai alur analisis hingga eksekusi: **Business, Model, Architecture, Delivery**.
 
-## Gate 0 — Intake
+## Gate 0 — Intake & Plan Mode
 
-Sebelum BMAD dimulai:
+1. Serap prompt dan identifikasi kebutuhan, pengguna, data, serta lingkungan target.
+2. Gunakan ulang konteks sesi yang masih valid; baca file atau dokumen kendali hanya bila belum tersedia, berubah, atau relevan dengan scope.
+3. Petakan pilar BMAD secara ringkas dan fokus pada inti masalah.
+4. Sajikan plan `PROPOSED` di chat. Jangan mengubah repository pada Plan Mode.
 
-- baca `AGENTS.md`, `PLAN.md`, dan `docs/PROJECT_CONTEXT.md`;
-- identifikasi kebutuhan, pengguna terdampak, data terdampak, dan lingkungan target;
-- buat item `PROPOSED` di `PLAN.md`;
-- jangan mengubah source sebelum approval manusia tercatat.
-
-Output: ID pekerjaan dan batas scope.
+Output: batas scope, acceptance criteria, risiko, validasi, dan rollback.
 
 ## B — Business
 
@@ -36,7 +34,7 @@ Pastikan perubahan memang diperlukan.
 - pemilik keputusan;
 - risiko bisnis dan privasi.
 
-Gate B lulus setelah manusia menyetujui kebutuhan dan acceptance criteria.
+Gate B siap disetujui bersama scope plan saat pengguna berpindah ke Act Mode.
 
 ## M — Model
 
@@ -88,7 +86,7 @@ Google Apps Script (Code.gs)
 
 1. Jangan buat fitur jika kebutuhan belum terbukti.
 2. Gunakan kemampuan native GAS/HTML/CSS sebelum dependency.
-3. Jangan tambah dependency tanpa approval.
+3. Tambah dependency hanya bila plan membutuhkannya dan alasannya tercatat; eskalasi bila memperbesar scope.
 4. Semua otorisasi diputuskan backend.
 5. Browser dan parameter URL selalu tidak tepercaya.
 6. Script Properties menyimpan konfigurasi privat; source tidak boleh menyimpan rahasia.
@@ -108,66 +106,58 @@ Google Apps Script (Code.gs)
 - observability tanpa membocorkan token/data buyer;
 - rollback tanpa kehilangan data.
 
-Gate A lulus setelah rencana implementasi, validasi, dan rollback disetujui manusia. Status item berubah menjadi `APPROVED`.
+Gate A lulus saat pengguna berpindah ke Act Mode. Perpindahan ini menyetujui Business, Model, Architecture, dan Delivery untuk scope plan.
 
 ## D — Delivery
 
-Delivery memisahkan implementasi, review, dan deployment.
+Delivery memakai approval mode tunggal, eksekusi mandiri, dan konfirmasi Git di akhir.
+
+### Approval via Act Mode
+
+- Perpindahan pengguna ke Act Mode menjadi approval implementasi resmi untuk scope plan.
+- Prompt yang masuk saat Act Mode sudah aktif disetujui setelah agen menyajikan plan singkat pada giliran yang sama.
+- Tahap normal tidak memerlukan approval berulang.
 
 ### Implement
 
-1. Buat branch `type/PLAN-ID-ringkasan`.
-2. Ubah status menjadi `IN_PROGRESS`.
-3. Baca ulang file sasaran.
-4. Terapkan diff terkecil dalam scope.
-5. Jangan menyentuh file lain tanpa memperbarui rencana dan approval.
-6. Jangan memakai data produksi.
+1. Buat branch `type/PLAN-ID-ringkasan` dan catat item `IN_PROGRESS`.
+2. Periksa file sasaran sebelum edit agar perubahan baru tidak tertimpa.
+3. Terapkan diff terkecil dalam scope.
+4. Gunakan data sintetis dan resource nonproduksi.
+5. Selesaikan error biasa dalam scope tanpa approval tambahan.
 
-### Verify
+### Verify & Close
 
 1. Jalankan pemeriksaan yang ditulis pada item rencana.
 2. Uji happy path, invalid input, akses tanpa izin, dan kegagalan layanan terkait.
-3. Periksa diff dan file tidak terduga.
-4. Cari rahasia, token, ID privat, data buyer, dan bukti transfer.
-5. Catat perintah, hasil, batasan, dan rollback.
-6. Ubah status menjadi `REVIEW`.
+3. Periksa diff, file tak terduga, rahasia, data pribadi, keamanan, dan dampak lintas fungsi.
+4. Catat command, hasil, keterbatasan, dan rollback.
+5. Sinkronkan `PLAN.md`, `CHANGELOG.md`, dan ADR bila diperlukan.
+6. Ubah status menjadi `DONE` bila acceptance criteria terpenuhi.
+7. Tanyakan pilihan Master: commit dan push, commit saja, atau tidak commit/push.
 
-### Human review
+### Gate eskalasi
 
-Manusia memeriksa:
+Hentikan pekerjaan dan beri tahu Master bila temuan:
 
-- acceptance criteria;
-- scope;
-- keamanan dan privasi;
-- bukti validasi;
-- diff;
-- kesiapan rollback.
+- memerlukan file/fungsi di luar plan;
+- berisiko merusak fungsi lain atau menimpa perubahan pengguna;
+- mengubah kontrak, schema, auth, permission, atau trust boundary di luar scope;
+- menyentuh data/resource atau deployment produksi;
+- memerlukan force push, reset hard, rebase, amend histori bersama, atau tindakan sulit dibalik;
+- tidak dapat membuktikan keamanan atau tenant isolation.
 
-Status hanya menjadi `DONE` setelah approval akhir.
+## Matriks otonomi
 
-### Close
-
-- perbarui `CHANGELOG.md`;
-- buat ADR jika keputusan penting berubah;
-- commit dengan ID pekerjaan;
-- merge melalui review;
-- deployment memakai approval terpisah;
-- catat versi/deployment tanpa menyimpan URL atau ID privat bila tidak diperlukan.
-
-## Matriks approval
-
-| Aktivitas | Observe | Approval implementasi | Approval khusus |
-|---|---:|---:|---:|
-| Membaca source dan status Git | Ya | Tidak | Tidak |
-| Menulis proposal di chat | Ya | Tidak | Tidak |
-| Mengubah dokumentasi repository | Tidak | Ya | Tidak |
-| Mengubah source/test/config | Tidak | Ya | Tergantung risiko |
-| Menambah dependency | Tidak | Ya | Ya |
-| Mengubah auth/token/sesi | Tidak | Ya | Security review |
-| Mengubah scope OAuth/permission | Tidak | Ya | Security review |
-| Operasi data produksi | Tidak | Tidak | Ya |
-| Deploy/rollback produksi | Tidak | Tidak | Ya |
-| Force push/reset/rebase histori bersama | Tidak | Tidak | Ya |
+| Aktivitas | Penanganan |
+|---|---|
+| Membaca konteks relevan | Mandiri; gunakan konteks sesi bila valid |
+| Menulis plan BMAD | Mandiri pada Plan Mode |
+| Mengubah source/test/config dalam scope | Mandiri setelah masuk Act Mode |
+| Security review dalam scope | Mandiri dan wajib |
+| Menutup `DONE` dan memperbarui changelog | Mandiri setelah validasi lulus |
+| Dampak di luar plan atau operasi produksi/destruktif | Eskalasi ke Master |
+| Commit dan push | Tanyakan pilihan kepada Master setelah selesai |
 
 ## Checklist prabuild
 
@@ -183,4 +173,4 @@ Status hanya menjadi `DONE` setelah approval akhir.
 - [ ] Prosedur backup dan rollback diuji.
 - [ ] Pemilik deployment dan approval produksi ditetapkan.
 
-Build fitur dimulai hanya setelah item terkait melewati Gate B, M, dan A.
+Build fitur dimulai pada Act Mode setelah plan melewati Gate B, M, dan A. Deployment produksi tetap memerlukan konfirmasi khusus.

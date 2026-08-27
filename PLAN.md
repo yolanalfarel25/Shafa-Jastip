@@ -1,29 +1,27 @@
 # PLAN — Jastip Apps
 
-Dokumen ini menjadi sumber agenda perubahan. Tidak ada perubahan source tanpa item berstatus `APPROVED`.
+Dokumen ini menjadi sumber agenda perubahan. Rencana disusun di Plan Mode, disetujui melalui perpindahan ke Act Mode, dan dieksekusi sampai `DONE` tanpa approval berulang kecuali memicu gate eskalasi.
 
 ## Status pekerjaan
 
-`PROPOSED` → `APPROVED` → `IN_PROGRESS` → `REVIEW` → `DONE`
+`PROPOSED` → `IN_PROGRESS` → `DONE`
 
-Status tambahan:
-
-- `BLOCKED` — pekerjaan terhenti karena dependensi, risiko, atau keputusan belum selesai.
+Status pendukung & histori:
+- `APPROVED` — histori item lama sebelum JST-026 atau checkpoint eksplisit.
+- `REVIEW` — histori item lama sebelum JST-026 atau status sementara saat eskalasi.
+- `BLOCKED` — pekerjaan terhenti karena menunggu keputusan Master saat gate eskalasi aktif.
 - `CANCELLED` — pekerjaan dibatalkan tanpa menghapus histori.
-
-Hanya manusia yang boleh mengubah `PROPOSED` menjadi `APPROVED` dan `REVIEW` menjadi `DONE`.
 
 ## Aturan penggunaan
 
-1. Buat satu item untuk satu perubahan logis.
+1. Susun analisis BMAD dan sajikan plan di chat pada Plan Mode.
 2. Gunakan ID berurutan: `JST-001`, `JST-002`, dan seterusnya.
-3. Isi acceptance criteria, scope, risiko, validasi, serta rollback sebelum approval.
-4. Catat nama pemberi approval dan waktu approval.
-5. Implementasi dilakukan di branch `type/PLAN-ID-ringkasan`.
-6. Temuan yang memperbesar scope wajib menjadi item baru atau dikembalikan ke `PROPOSED`.
-7. Setelah implementasi, lampirkan bukti validasi dan ubah status menjadi `REVIEW`.
-8. Setelah review manusia, ubah status menjadi `DONE` dan sinkronkan `CHANGELOG.md`.
-9. Approval implementasi tidak mencakup deployment atau operasi data produksi.
+3. Saat Master berpindah ke Act Mode, agen mencatat/memperbarui item ke `IN_PROGRESS` pada branch `type/PLAN-ID-ringkasan`.
+4. Agen menjalankan implementasi, validasi, dan security review mandiri sampai tuntas.
+5. Jika ada file/fungsi di luar plan yang terdampak, risiko kerusakan, atau operasi khusus, agen mengubah/menahan status pada `BLOCKED` dan melapor ke Master.
+6. Setelah validasi lulus dan acceptance criteria terpenuhi, agen mengubah status menjadi `DONE` serta menyinkronkan `CHANGELOG.md`.
+7. Setelah selesai, agen menanyakan konfirmasi kepada Master: commit, commit + push, atau tidak keduanya.
+8. Approval Act Mode tidak mencakup deployment produksi atau manipulasi data produksi.
 
 ---
 
@@ -2081,3 +2079,92 @@ Revert perubahan branch `fix/JST-025-dashboard-image-render`. Bila nanti dideplo
 ### Catatan review
 
 Review manusia menyetujui penutupan pekerjaan JST-025, sinkronisasi `CHANGELOG.md`, dan pembuatan commit branch pada 2026-08-27 melalui teks `approved`. Merge `main`, clasp push, deployment staging, dan deployment produksi tidak dilakukan.
+
+---
+
+## JST-026 — Sederhanakan workflow governance agen
+
+- **Status:** `DONE`
+- **Jenis:** `docs`
+- **Pemilik:** agen dokumentasi/governance
+- **Dibuat:** 2026-08-27
+- **Approval:** perpindahan pengguna (Master) dari Plan Mode ke Act Mode pada 2026-08-27 menyetujui scope plan JST-026.
+- **Selesai:** 2026-08-27
+
+### Tujuan
+
+Mengganti approval berulang dengan satu approval implementasi saat pengguna berpindah ke Act Mode. Setelah itu agen menjalankan scope sampai selesai dan hanya mengeskalasi dampak di luar plan, risiko kerusakan, konflik perubahan, atau operasi khusus.
+
+### Acceptance criteria
+
+- [x] Plan Mode menghasilkan pemetaan BMAD dan rencana di chat tanpa mengubah repository.
+- [x] Perpindahan ke Act Mode menjadi approval implementasi untuk scope plan.
+- [x] Agen dapat mencatat task, membuat branch, mengimplementasikan, memvalidasi, memperbarui dokumentasi, dan menutup task tanpa approval rutin tambahan.
+- [x] Konteks governance yang sudah dibaca boleh dipakai ulang selama sesi; file dibaca ulang hanya bila belum tersedia, berubah, atau relevan dengan scope.
+- [x] Agen berhenti dan memberi tahu Master bila temuan menyentuh file/fungsi di luar plan, berisiko merusak atau menimpa, menurunkan keamanan, atau memerlukan operasi khusus.
+- [x] Setelah pekerjaan selesai, agen selalu meminta pilihan commit dan push; keduanya tidak dijalankan otomatis.
+- [x] Histori task lama tidak diubah.
+
+### Ruang lingkup
+
+- `.cline/rules/01-governance.md`
+- `AGENTS.md`
+- `PLAN.md`
+- `SECURITY.md`
+- `README.md`
+- `CHANGELOG.md`
+- `docs/BMAD.md`
+- `docs/AGENT_PROMPTS.md`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/decisions/README.md`
+- `docs/decisions/ADR-001-workflow-approval-act-mode.md`
+
+### Di luar ruang lingkup
+
+- Source aplikasi, test, manifest GAS, dependency, data, deployment, merge, commit, dan push.
+- Pengubahan atau penghapusan histori `JST-001` sampai `JST-025`.
+- Pelemahan kontrol auth, otorisasi, tenant isolation, upload, permission, atau rahasia.
+
+### Risiko keamanan/data
+
+- Approval tunggal dapat disalahartikan sebagai izin memperbesar scope atau menjalankan operasi produksi.
+- Context cache dapat usang bila file berubah di tengah sesi.
+- Penutupan otomatis dapat menyembunyikan validasi gagal bila bukti tidak diwajibkan.
+
+### Rencana implementasi
+
+1. Buat branch `docs/JST-026-sederhanakan-governance`.
+2. Selaraskan governance inti dengan workflow Plan/Act dan gate eskalasi berbasis dampak.
+3. Selaraskan BMAD, prompt agen, kebijakan keamanan, konteks proyek, README, status task, dan changelog.
+4. Catat keputusan lintas task sebagai ADR-001.
+5. Validasi konsistensi, scope diff, histori, format, serta pola rahasia.
+6. Catat bukti dan tutup ke `DONE` bila semua acceptance criteria terpenuhi.
+7. Tanyakan pilihan commit/push kepada Master setelah pekerjaan selesai.
+
+### Rencana validasi
+
+1. Cari aturan aktif yang masih mewajibkan approval rutin berulang.
+2. Jalankan `git diff --check`, `git diff --name-only`, dan `git status --short --branch`.
+3. Pastikan hanya file scope berubah dan histori task lama tidak berubah.
+4. Scan diff untuk token, private key, URL privat, ID resource, dan data pribadi.
+5. Tinjau konsistensi Plan Mode, Act Mode, eskalasi, penutupan, commit, push, deployment, dan operasi produksi.
+
+### Rencana rollback
+
+Sebelum commit, pulihkan hanya file dalam scope JST-026. Setelah commit, gunakan `git revert` pada commit `[JST-026]`; jangan reset histori bersama. Tidak ada perubahan source, schema, data, atau deployment.
+
+### Hasil validasi
+
+- [x] Self-check Python memastikan 11 file dalam scope tepat pada branch `docs/JST-026-sederhanakan-governance`.
+- [x] Konten histori `JST-001` sampai `JST-025` di `PLAN.md` identik (117.170 karakter setelah normalisasi line ending) terhadap commit HEAD `fix/JST-025-dashboard-image-render`.
+- [x] Seluruh marker workflow baru (`Approval via Act Mode`, `Gate eskalasi`, `ubah status menjadi DONE`, `tanpa approval keamanan tambahan`, `Matriks otonomi`, `Prompt Eksekusi Task (Act Mode)`, `ADR-001 ACCEPTED`) terverifikasi.
+- [x] Struktur Markdown di seluruh 11 file seimbang dan valid.
+- [x] `git diff --check` lulus tanpa error whitespace.
+- [x] Scan aturan aktif bersih dari syarat approval rutin berulang (`No obsolete active approval rule found.`).
+- [x] Scan pola rahasia dan URL privat pada seluruh diff serta ADR-001 bersih (`Secret and private URL pattern check clean.`).
+- [x] Status `PLAN.md` diubah menjadi `DONE` dan `CHANGELOG.md` disinkronkan.
+- [x] Tidak ada commit atau push otomatis yang dijalankan.
+
+### Catatan review
+
+Pekerjaan `JST-026` diselesaikan secara mandiri setelah Master berpindah ke Act Mode sebagai persetujuan scope plan. ADR-001 dicatat dan disetujui. Agen menunggu konfirmasi pilihan Master untuk tindakan Git selanjutnya.

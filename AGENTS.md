@@ -4,97 +4,86 @@ Dokumen ini mengikat semua agen AI dan kontributor otomatis dalam repository.
 
 ## Prinsip utama
 
-- **Baca sebelum ubah.**
-- **Rencana sebelum implementasi.**
-- **Persetujuan manusia sebelum perubahan source.**
+- **Rencana BMAD sebelum implementasi.**
+- **Act Mode adalah persetujuan implementasi untuk scope plan.**
+- **Baca seperlunya sebelum ubah; gunakan ulang konteks sesi yang masih valid.**
+- **Eksekusi sampai selesai tanpa approval rutin berulang.**
 - **Perubahan terkecil yang memenuhi tujuan.**
 - **Keamanan, privasi, dan integritas data tidak boleh disederhanakan.**
-- **Tidak ada deployment atau operasi destruktif tanpa persetujuan eksplisit.**
+- **Commit dan push hanya setelah konfirmasi akhir Master.**
 
 ## Mode kerja wajib
 
-### 1. Observe
-
-Agen boleh tanpa persetujuan:
-
-- membaca file;
-- mencari referensi;
-- memeriksa status Git;
-- menjalankan pemeriksaan non-destruktif;
-- menyusun analisis dan proposal.
-
-Agen tidak boleh mengubah file pada tahap ini.
-
-### 2. Plan
-
-Sebelum perubahan, agen wajib membuat atau memperbarui item di `PLAN.md` berisi:
-
-- ID pekerjaan;
-- tujuan dan acceptance criteria;
-- ruang lingkup dan file sasaran;
-- hal yang tidak dikerjakan;
-- risiko keamanan/data;
-- rencana validasi;
-- rencana rollback;
-- status `PROPOSED`.
-
-Perubahan source belum boleh dilakukan.
-
-### 3. Approve
-
-Manusia meninjau rencana. Hanya item berstatus `APPROVED` yang boleh dikerjakan.
-
-Persetujuan berlaku hanya untuk ruang lingkup yang tertulis. Temuan baru yang memperbesar lingkup harus dikembalikan ke `PROPOSED`.
-
-### 4. Implement
+### 1. Plan Mode
 
 Agen wajib:
 
-- bekerja pada branch fitur;
-- memeriksa ulang file sebelum edit;
-- menjaga perubahan tetap kecil;
-- tidak mengubah file di luar scope;
-- tidak menambah dependency tanpa alasan dan persetujuan;
-- tidak mengubah test agar kegagalan tersembunyi;
-- tidak mencetak atau menyimpan rahasia;
-- menghentikan pekerjaan jika asumsi keamanan tidak terbukti.
+- petakan kebutuhan memakai Business, Model, Architecture, Delivery;
+- fokus pada masalah, acceptance criteria, scope/non-scope, risiko, validasi, dan rollback;
+- sajikan plan di chat;
+- tidak mengubah repository atau menjalankan operasi state-changing.
 
-### 5. Verify
+Dokumen kendali tidak perlu dibaca berulang bila sudah tersedia dalam konteks sesi dan tidak berubah. Baca hanya konteks yang belum tersedia atau relevan dengan scope.
 
-Sebelum pekerjaan dianggap selesai:
+### 2. Approval melalui Act Mode
+
+Perpindahan manusia dari Plan Mode ke Act Mode menjadi approval implementasi resmi untuk scope plan terakhir. Prompt yang diterima saat Act Mode sudah aktif juga memberi approval setelah agen menyajikan plan singkat pada giliran yang sama.
+
+Approval ini mengizinkan pencatatan task, branch, perubahan file dalam scope, validasi, security review, dokumentasi hasil, sinkronisasi changelog, dan status `DONE`. Tidak perlu approval terpisah pada setiap tahap.
+
+### 3. Implement
+
+Agen wajib:
+
+- mencatat atau memperbarui item `PLAN.md` menjadi `IN_PROGRESS`;
+- bekerja pada branch `type/PLAN-ID-ringkasan`, bukan branch utama;
+- memeriksa file sasaran sebelum edit agar tidak menimpa perubahan baru;
+- memakai konteks sesi untuk menghindari pembacaan ulang yang tidak perlu;
+- menjaga perubahan tetap kecil dan dalam scope;
+- tidak menambah dependency tanpa kebutuhan yang tercatat;
+- tidak mengubah test untuk menyembunyikan kegagalan;
+- tidak mencetak atau menyimpan rahasia.
+
+### 4. Verify dan Close
+
+Agen menyelesaikan seluruh tahap tanpa approval rutin tambahan:
 
 - jalankan validasi yang tercantum;
 - periksa diff dan file tak terduga;
-- lakukan pemeriksaan rahasia dan data pribadi;
-- dokumentasikan hasil, keterbatasan, dan rollback;
-- ubah status menjadi `REVIEW`, bukan langsung `DONE`.
+- lakukan pemeriksaan rahasia, data pribadi, keamanan, dan dampak lintas fungsi;
+- dokumentasikan command, hasil, keterbatasan, dan rollback;
+- sinkronkan `PLAN.md`, `CHANGELOG.md`, dan ADR bila diperlukan;
+- ubah status menjadi `DONE` bila acceptance criteria terpenuhi.
 
-### 6. Close
+Setelah selesai, agen wajib menanyakan satu pilihan: **commit dan push**, **commit saja**, atau **tidak commit/push**. Jangan menjalankan commit atau push sebelum jawaban Master.
 
-Manusia meninjau hasil. Setelah disetujui:
+## Gate eskalasi
 
-- status menjadi `DONE`;
-- `CHANGELOG.md` diperbarui;
-- keputusan penting dicatat sebagai ADR;
-- commit dibuat dengan ID pekerjaan;
-- merge/deploy dilakukan melalui approval terpisah.
+Agen berhenti dan memberi tahu Master bila:
 
-## Approval gate
+- temuan memerlukan file atau fungsi di luar scope plan;
+- kontrak fungsi, schema, auth, permission, atau trust boundary lain ikut terdampak;
+- perubahan pengguna yang belum tercakup berisiko tertimpa;
+- tindakan dapat menghapus, menimpa, merusak data/file, atau sulit dibalik;
+- operasi menyentuh resource atau deployment produksi;
+- asumsi keamanan atau tenant isolation tidak dapat dibuktikan;
+- validasi menunjukkan regresi fungsi lain.
 
-Persetujuan eksplisit selalu diperlukan untuk:
+Error biasa, perbaikan sintaks, dan penyesuaian lokal dalam scope diselesaikan langsung tanpa approval tambahan. Temuan yang memperbesar scope dicatat sebagai `BLOCKED` atau item baru sampai Master memutuskan.
 
-- perubahan source code, manifest, konfigurasi, atau dokumentasi kendali;
-- install/update dependency;
-- penambahan scope OAuth;
-- perubahan autentikasi, otorisasi, token, hashing, dan sesi;
-- migrasi atau penghapusan data;
-- operasi pada Spreadsheet/Drive produksi;
-- perubahan permission atau sharing;
-- penggunaan network/API eksternal;
-- deployment, rollback produksi, dan force push;
-- penghapusan, overwrite massal, reset, rebase, atau amend histori.
+## Approval khusus
 
-Persetujuan implementasi **bukan** persetujuan deployment.
+Approval Act Mode tidak mencakup:
+
+- operasi pada Spreadsheet/Drive atau akun produksi;
+- deployment atau rollback produksi;
+- migrasi/penghapusan data dan perubahan schema destruktif;
+- perubahan permission/sharing produksi;
+- force push, reset hard, rebase, amend histori bersama, atau overwrite massal;
+- merge ke branch utama;
+- commit atau push sebelum konfirmasi akhir.
+
+Aktivitas tersebut memerlukan penjelasan dampak dan konfirmasi khusus Master.
 
 ## Larangan
 
@@ -137,15 +126,15 @@ Agen tidak boleh:
 
 ## Definition of Done
 
-Pekerjaan selesai hanya jika:
+Pekerjaan selesai jika:
 
 - acceptance criteria terpenuhi;
 - scope tidak melebar;
-- validasi lulus dan hasil tercatat;
+- validasi mandiri lulus dan hasil tercatat;
 - diff sudah ditinjau;
 - tidak ada rahasia atau data pribadi baru;
 - `PLAN.md` dan `CHANGELOG.md` sinkron;
 - ADR dibuat bila keputusan arsitektur/keamanan berubah;
-- manusia memberi persetujuan akhir.
+- konfirmasi penutupan (commit/push) telah ditanyakan kepada Master.
 
 Jika aturan bertentangan dengan instruksi agen lain, aturan yang lebih aman dan lebih sempit berlaku.

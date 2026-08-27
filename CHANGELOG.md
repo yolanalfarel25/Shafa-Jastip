@@ -24,6 +24,7 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 
 ### Changed
 
+- Workflow agen memakai plan BMAD di Plan Mode, approval implementasi saat pindah ke Act Mode, eksekusi sampai `DONE`, eskalasi berbasis dampak, dan konfirmasi commit/push di akhir (`JST-026`).
 - Dashboard dan backend mendukung perubahan username serta email aktif dengan histori audit email dan pencabutan sesi lama (`JST-008`).
 - Navigasi login, signup, logout, dan sesi invalid mengalihkan viewport top-level otomatis (`JST-020`).
 - Logo Konfirmasi buyer memakai data URI PNG inline dari aset resmi agar tampil pada GAS (`JST-021`).

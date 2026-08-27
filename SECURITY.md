@@ -35,9 +35,9 @@ Laporan minimum:
 
 Hentikan pengujian jika berisiko mengubah, menghapus, atau mengekspos data. Eskalasi ke pemilik project melalui kanal privat yang disepakati organisasi.
 
-## Approval keamanan wajib
+## Security review dan eskalasi
 
-Security review dan approval eksplisit diperlukan untuk:
+Security review wajib menjadi bagian eksekusi Act Mode untuk:
 
 - autentikasi, hashing, sesi, token, dan logout;
 - akses lintas jastiper;
@@ -47,7 +47,9 @@ Security review dan approval eksplisit diperlukan untuk:
 - Script Properties dan konfigurasi privat;
 - migrasi, retensi, export, atau penghapusan data;
 - logging, telemetry, dan integrasi eksternal;
-- deployment atau rollback produksi.
+- deployment atau rollback.
+
+Perubahan dalam scope plan dapat dilanjutkan tanpa approval keamanan tambahan jika kontrol, validasi, dan rollback dapat dibuktikan. Agen wajib berhenti dan meminta keputusan Master bila security review menemukan risiko yang tidak dapat dimitigasi dalam scope, perlu melemahkan kontrol, berdampak lintas tenant/fungsi, menyentuh data/resource produksi, atau memerlukan tindakan sulit dibalik.
 
 ## Baseline kontrol
 
@@ -131,7 +133,7 @@ Dilarang dicatat:
 6. Nilai data dan tenant terdampak.
 7. Pulihkan dari versi/backup terverifikasi.
 8. Dokumentasikan akar masalah dan tindakan pencegahan tanpa memasukkan data sensitif.
-9. Deployment pemulihan memerlukan approval terpisah.
+9. Deployment pemulihan memerlukan konfirmasi khusus lingkungan/Master.
 
 ## Retensi
 
