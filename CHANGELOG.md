@@ -29,6 +29,7 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 - Logo Konfirmasi buyer memakai data URI PNG inline dari aset resmi agar tampil pada GAS (`JST-021`).
 - Tab `Data Buyer` dan `Pengaturan Jastip` pada Dashboard Jastiper kini berpindah panel sesuai klik (`JST-022`).
 - Tombol `Simpan Pengaturan` Dashboard kembali mengirim profil dan rekening valid serta memulihkan status tombol setelah respons (`JST-023`).
+- Inisialisasi formulir konfirmasi buyer membaca parameter URL host Web App melalui `google.script.url.getLocation` pada runtime iframe GAS (`JST-024`).
 
 ## Aturan pencatatan
 

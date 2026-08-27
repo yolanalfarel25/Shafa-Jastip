@@ -1881,3 +1881,106 @@ Review manusia menyetujui penutupan, sinkronisasi `CHANGELOG.md`, commit branch,
 - [x] Smoke test HTTP staging: root dan Dashboard merespons HTTP 200; payload Dashboard memuat handler `saveSettings` dan helper `busy(btn,on,text)`.
 - [ ] Uji klik simpan terautentikasi dengan akun/rekening sintetis belum dijalankan karena kredensial staging sintetis tidak tersedia di workspace. Tidak ada data produksi dipakai.
 - Rollback staging: redeploy deployment staging yang sama ke versi terverifikasi `@10`.
+
+
+
+---
+
+## JST-024 — Pengambilan parameter URL halaman konfirmasi buyer via API host GAS
+
+- **Status:** `DONE`
+- **Jenis:** `fix`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-27
+- **Approval implementasi:** pengguna, 2026-08-27, teks `,approve jst 024`.
+- **Approval penutupan dan staging:** pengguna, 2026-08-27, teks `APPROVE JST-024 PENUTUPAN DAN STAGING`; mencakup `CHANGELOG.md`, commit branch, push source GAS, dan deployment staging. Tidak mencakup merge `main` atau deployment produksi.
+
+### Tujuan
+
+Memperbaiki halaman konfirmasi pembelian (`Konfirmasi.html`) agar dapat membaca parameter URL Web App host (seperti `?shop=...`, `?id=...`, `?token=...`) yang berjalan di dalam iframe sandbox Google Apps Script, sehingga konfigurasi jastiper dan daftar nomor rekening bank berhasil dimuat tanpa error `Link jastip tidak lengkap`.
+
+### Acceptance criteria
+
+- [x] Fungsi inisialisasi pada `Konfirmasi.html` mengambil parameter URL host melalui `google.script.url.getLocation` ketika tersedia di runtime Web App GAS.
+- [x] Fallback parsing `window.location.search` tetap tersedia untuk lingkungan pratinjau lokal / non-GAS.
+- [x] Parameter `shop`, `id`, dan `token` dari host diteruskan ke `google.script.run.getPublicConfig(shop, id, token)` dan `loadEditData(id, token)`.
+- [ ] Rekening bank yang sudah dikonfigurasi jastiper tampil dinamis pada formulir konfirmasi buyer saat membuka link jastip valid (`?shop=...`); verifikasi runtime menunggu approval deployment staging.
+- [x] Template kanonik `03_Konfirmasi_Pembelian/Konfirmasi.html` dan template GAS `04_Backend_GAS/Konfirmasi.html` tetap identik.
+- [x] Test regresi lokal runnable memverifikasi fungsi inisialisasi boot/parameter dengan mock `google.script.url` dan fallback `window.location`.
+- [x] Seluruh test lokal `jst016` hingga `jst024` lulus tanpa regresi.
+
+### Ruang lingkup
+
+- `03_Konfirmasi_Pembelian/Konfirmasi.html`
+- `04_Backend_GAS/Konfirmasi.html`
+- `tests/jst024_confirmation_url_param_check.js`
+- `PLAN.md`
+
+### Di luar ruang lingkup
+
+- Perubahan fungsi backend `04_Backend_GAS/Code.gs`, otorisasi auth/sesi, token edit hash, atau schema sheet.
+- Perubahan halaman Login atau Dashboard.
+- Merge branch ke `main`, deployment staging, atau deployment produksi (memerlukan approval terpisah).
+
+### Bukti investigasi
+
+- Pengguna melaporkan nomor rekening tidak muncul dan tangkapan layar menunjukkan pesan error merah: `Error: Link jastip tidak lengkap. Silakan gunakan link yang dibagikan oleh jastiper.`
+- Tangkapan layar membuktikan URL browser terisi parameter `?shop=[disamarkan]`; nilai aktual tidak dicatat ke repository.
+- Kode saat ini pada `Konfirmasi.html` baris 499 hanya membaca `const params = new URLSearchParams(location.search)`.
+- Dalam arsitektur Google Apps Script HTML Service (`XFrameOptionsMode.ALLOWALL`), client JavaScript berjalan di dalam `<iframe>` sandbox domain Google (`userContent.googleusercontent.com`), di mana `location.search` iframe kosong dan tidak mencerminkan query string parent URL `/exec?shop=...`.
+- Dokumentasi resmi Apps Script `google.script.url.getLocation(cb)` menyediakan `location.parameter` yang berisi parameter parent URL secara asynchronous.
+- Karena `shop` terbaca string kosong, RPC memanggil `getPublicConfig('', '', '')` yang langsung melempar error `Link jastip tidak lengkap`, menghentikan pemuatan nama jastip dan daftar rekening bank.
+
+### Risiko keamanan/data
+
+- Parameter URL dari browser (`shop`, `id`, `token`) adalah input tidak tepercaya; backend `Code.gs` tetap memvalidasi `clean_(shareCode, 80)` dan mencocokkan hash token edit secara server-side.
+- Data rekening bank yang dirender tetap berasal dari data terfilter server melalui `textContent` (sudah diamankan di JST-018), tanpa risiko XSS atau data leakage antar-jastiper.
+- Tidak ada rahasia atau data sensitif yang dicatat ke log browser.
+
+### Rencana implementasi
+
+1. Setelah rencana disetujui (`APPROVED`), buat branch fitur `fix/JST-024-konfirmasi-url-param`.
+2. Modifikasi alur `boot()` di `Konfirmasi.html`:
+   - Deteksi aman keberadaan API melalui `typeof google !== 'undefined' && google.script && google.script.url && google.script.url.getLocation`.
+   - Jika ada, panggil `google.script.url.getLocation(loc => init(loc.parameter || {}))`.
+   - Jika tidak ada (misal di local browser), panggil `init(Object.fromEntries(new URLSearchParams(location.search)))`.
+   - Fungsi `init(params)` memicu `getPublicConfig(shop, id, token)` dan `loadEditData(id, token)`.
+3. Sinkronkan `03_Konfirmasi_Pembelian/Konfirmasi.html` dan `04_Backend_GAS/Konfirmasi.html`.
+4. Buat unit test mandiri `tests/jst024_confirmation_url_param_check.js`.
+
+### Rencana validasi
+
+1. Jalankan `node tests/jst024_confirmation_url_param_check.js`.
+2. Jalankan seluruh test suite `tests/jst*.js`.
+3. Parse JavaScript seluruh file template dengan `vm.Script`.
+4. Verifikasi konsistensi `cmp -s` file `Konfirmasi.html`.
+5. Jalankan `git diff --check` dan scan pola data sensitif.
+
+### Rencana rollback
+
+Revert perubahan branch `fix/JST-024-konfirmasi-url-param`. Jika telah dideploy ke staging dan mengalami anomali, redeploy versi staging sebelumnya `@11`. Tidak ada schema/data sheet yang berubah.
+
+### Hasil validasi
+
+- [x] Test RED sebelum implementasi: `node tests/jst024_confirmation_url_param_check.js` gagal dengan `AssertionError: function init( missing`.
+- [x] Test GREEN setelah implementasi: `node tests/jst024_confirmation_url_param_check.js` lulus.
+- [x] Suite test lokal lengkap lulus:
+  - `tests/jst016_resource_config_check.js`
+  - `tests/jst018_multi_rekening_check.js`
+  - `tests/jst019_item_photo_action_check.js`
+  - `tests/jst020_auth_auto_navigation_check.js`
+  - `tests/jst021_confirmation_logo_check.js`
+  - `tests/jst022_dashboard_tabs_check.js`
+  - `tests/jst023_dashboard_save_settings_check.js`
+  - `tests/jst024_confirmation_url_param_check.js`
+- [x] Parser JavaScript seluruh template HTML (`Login`, `Dashboard`, `Konfirmasi` kanonik dan GAS): lulus tanpa error sintaks.
+- [x] Sinkronisasi template Login, Dashboard, dan Konfirmasi: lulus (`cmp -s`).
+- [x] `git diff --check`: lulus bersih.
+- [x] Scan pola rahasia pada seluruh perubahan JST-024: tidak menemukan rahasia dengan keyakinan tinggi; test hanya memakai nilai sintetis.
+- [x] Security review: sumber parameter berubah ke API host GAS, tetapi input tetap tidak tepercaya dan validasi/otorisasi server-side tidak berubah. Tidak ada token baru pada log atau DOM.
+
+### Catatan review
+
+- Perubahan runtime staging belum diverifikasi karena deployment staging belum disetujui.
+- `CHANGELOG.md`, commit, clasp push, merge `main`, dan deployment belum dilakukan. Semua memerlukan review/approval lanjutan sesuai governance.
+- Rollback source: revert perubahan `[JST-024]`. Rollback staging, jika deployment kelak disetujui: redeploy versi `@11`.

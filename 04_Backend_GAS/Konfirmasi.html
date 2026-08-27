@@ -493,13 +493,11 @@
       setTimeout(()=>$('#copyLink').textContent='🔗 Salin Link Edit',1600);
     });
 
-    function boot(){
-      addItem();
-
-      const params = new URLSearchParams(location.search);
-      const shop = params.get('shop') || '';
-      const id = params.get('id') || '';
-      const token = params.get('token') || '';
+    function init(params){
+      // ponytail: read host URL params only, add google.script.history sync when requested
+      const shop = (params && params.shop) || '';
+      const id = (params && params.id) || '';
+      const token = (params && params.token) || '';
 
       editState.shareCode = shop;
 
@@ -509,6 +507,22 @@
         .getPublicConfig(shop, id, token);
 
       if(id && token) loadEditData(id, token);
+    }
+
+    function boot(){
+      addItem();
+
+      if(typeof google !== 'undefined' && google.script && google.script.url && typeof google.script.url.getLocation === 'function'){
+        google.script.url.getLocation(loc => init((loc && loc.parameter) || {}));
+        return;
+      }
+
+      const params = new URLSearchParams(location.search);
+      init({
+        shop: params.get('shop') || '',
+        id: params.get('id') || '',
+        token: params.get('token') || ''
+      });
     }
     boot();
   </script>
