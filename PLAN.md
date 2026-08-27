@@ -1704,3 +1704,67 @@ Belum dijalankan.
 
 ### Catatan review
 ```
+
+
+## JST-022 — Handler navigasi tab panel dashboard jastiper
+
+- **Status:** `DONE`
+- **Jenis:** `fix`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-27
+- **Approval:** pengguna, 2026-08-27, teks `approve jst 022`.
+
+### Tujuan
+
+Mengaktifkan perpindahan panel `Data Buyer` dan `Pengaturan Jastip` pada Dashboard Jastiper dengan menambahkan event listener navigasi tab yang sinkron di file template kanonik dan salinan deployment GAS.
+
+### Acceptance criteria
+
+- [x] Mengklik tab `Pengaturan Jastip` memunculkan panel pengaturan (`#settings`) dan menyembunyikan panel data buyer (`#orders`).
+- [x] Mengklik tab `Data Buyer` memunculkan panel data buyer (`#orders`) dan menyembunyikan panel pengaturan (`#settings`).
+- [x] Class `active` berpindah sesuai tab yang diklik.
+- [x] Template `02_Dashboard_Jastiper/Dashboard.html` dan `04_Backend_GAS/Dashboard.html` sinkron identik.
+- [x] Script parsing JavaScript dan test lokal JST-022 lulus tanpa regresi.
+
+### Ruang lingkup
+
+- `02_Dashboard_Jastiper/Dashboard.html`
+- `04_Backend_GAS/Dashboard.html`
+- `tests/jst022_dashboard_tabs_check.js`
+- `PLAN.md`
+
+### Di luar ruang lingkup
+
+- Perubahan fungsi backend `Code.gs`, validasi form, schema sheet, atau storage Drive.
+- Perubahan OAuth scope, manifest `appsscript.json`, atau Script Properties.
+- Perubahan endpoint auth, session handling, atau logic multi-rekening JST-018.
+- Deployment produksi.
+
+### Risiko keamanan/data
+
+- Perubahan hanya pada DOM client-side UI switching tanpa memanipulasi data sesi, token, atau backend call. Risiko keamanan nol.
+- State form input pengaturan dipertahankan saat perpindahan panel.
+
+### Rencana implementasi
+
+1. Tambahkan handler event listener pada tombol `.nav button` menggunakan delegasi atau query selector loop di `Dashboard.html`.
+2. Sinkronkan `02_Dashboard_Jastiper/Dashboard.html` ke `04_Backend_GAS/Dashboard.html`.
+3. Buat file test `tests/jst022_dashboard_tabs_check.js`.
+4. Jalankan seluruh test suite, parse JS, `git diff --check`, dan secret scan.
+
+### Rencana rollback
+
+Revert modifikasi pada `02_Dashboard_Jastiper/Dashboard.html`, `04_Backend_GAS/Dashboard.html`, dan hapus `tests/jst022_dashboard_tabs_check.js`.
+
+### Hasil validasi
+
+- [x] `node tests/jst022_dashboard_tabs_check.js`: lulus (`JST-022 dashboard tabs check passed.`).
+- [x] Seluruh suite test lokal (`JST-016`, `JST-018`, `JST-019`, `JST-020`, `JST-021`, `JST-022`) lulus.
+- [x] Parse JavaScript script tags untuk seluruh file HTML (`01_Login_Signup`, `02_Dashboard_Jastiper`, `03_Konfirmasi_Pembelian`, dan salinan `04_Backend_GAS`) lulus tanpa error sintaks.
+- [x] Sinkronisasi template `02_Dashboard_Jastiper/Dashboard.html` dan `04_Backend_GAS/Dashboard.html` identik (`cmp -s`).
+- [x] `git diff --check`: lulus; tidak ada trailing whitespace atau formatting issue.
+- [x] Diff secret scan: lulus; tidak ada credential, private key, token, atau URL deployment privat.
+
+### Catatan review
+
+Implementasi dan penutupan JST-022 disetujui pengguna pada 2026-08-27 melalui teks `approval 1 dan 2`. Approval mencakup commit branch serta deployment GAS staging; tidak mencakup merge ke `main`, deployment produksi, atau operasi data.

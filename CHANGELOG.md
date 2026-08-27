@@ -27,6 +27,7 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 - Dashboard dan backend mendukung perubahan username serta email aktif dengan histori audit email dan pencabutan sesi lama (`JST-008`).
 - Navigasi login, signup, logout, dan sesi invalid mengalihkan viewport top-level otomatis (`JST-020`).
 - Logo Konfirmasi buyer memakai data URI PNG inline dari aset resmi agar tampil pada GAS (`JST-021`).
+- Tab `Data Buyer` dan `Pengaturan Jastip` pada Dashboard Jastiper kini berpindah panel sesuai klik (`JST-022`).
 
 ## Aturan pencatatan
 
