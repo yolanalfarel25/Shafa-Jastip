@@ -1768,3 +1768,14 @@ Revert modifikasi pada `02_Dashboard_Jastiper/Dashboard.html`, `04_Backend_GAS/D
 ### Catatan review
 
 Implementasi dan penutupan JST-022 disetujui pengguna pada 2026-08-27 melalui teks `approval 1 dan 2`. Approval mencakup commit branch serta deployment GAS staging; tidak mencakup merge ke `main`, deployment produksi, atau operasi data.
+
+### Bukti integrasi dan deployment staging
+
+- Branch: `fix/JST-022-tab-nav-dashboard`; commit implementasi `a607013`.
+- `clasp push`: 5 file GAS berhasil diunggah (`appsscript.json`, `Code.gs`, 3 template HTML); Script Properties dan resource data tidak diubah.
+- Deployment Web App staging aktif diperbarui ke versi `@10` dengan deskripsi `JST-022 tab nav dashboard staging 2026-08-27`; URL deployment privat tidak dicatat.
+- GET read-only Dashboard staging: HTTP `200`.
+- Payload staging `version=10` diverifikasi memuat handler klik tab `.nav button` dan tombol target `data-panel="settings"`.
+- Smoke test DOM Chromium headless desktop `1280x1200` dan mobile `390x844`: klik tab Pengaturan Jastip berhasil menambahkan class `active` pada tombol settings dan panel `#settings`, serta menghapus class `active` dari panel `#orders`.
+- Suite test lokal JST-016 hingga JST-022, parse JavaScript template HTML, sinkronisasi template, `git diff --check`, dan secret scan: lulus.
+- Rollback deployment staging tersedia dengan redeploy ke versi `@9`. Operasi data/resource produksi tidak dijalankan.
