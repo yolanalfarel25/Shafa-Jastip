@@ -1416,7 +1416,7 @@ Revert perubahan `[JST-018]`. Kode lama mengabaikan kolom tambahan; empat kolom 
 
 ## JST-019 — Hapus dan ganti foto barang buyer sebelum submit konfirmasi
 
-- **Status:** `APPROVED`
+- **Status:** `REVIEW`
 - **Jenis:** `feat`
 - **Pemilik:** agen implementasi
 - **Dibuat:** 2026-08-27
@@ -1428,13 +1428,13 @@ Menyediakan tombol hapus foto barang yang sudah dipilih pada form konfirmasi buy
 
 ### Acceptance criteria
 
-- [ ] Setiap baris barang pada `Konfirmasi.html` yang memiliki file terpilih menampilkan tombol "Hapus Foto".
-- [ ] Tombol "Hapus Foto" mengosongkan input file, menyembunyikan preview gambar, dan membersihkan object URL preview (`URL.revokeObjectURL`) untuk mencegah memory leak.
-- [ ] Buyer dapat memilih foto baru setelah menghapus.
-- [ ] Validasi submit tetap menolak jika ada baris barang yang tidak memiliki foto (file baru maupun `existingUrl` pada mode edit).
-- [ ] Pada mode edit konfirmasi, membatalkan file baru mengembalikan status indikator foto lama yang tersimpan.
-- [ ] Tidak ada file yang diunggah ke Google Drive sebelum tombol submit ditekan.
-- [ ] Tampilan responsif dan mudah digunakan pada mobile.
+- [x] Setiap baris barang pada `Konfirmasi.html` yang memiliki file terpilih menampilkan tombol "Hapus Foto".
+- [x] Tombol "Hapus Foto" mengosongkan input file, menyembunyikan preview gambar, dan membersihkan object URL preview (`URL.revokeObjectURL`) untuk mencegah memory leak.
+- [x] Buyer dapat memilih foto baru setelah menghapus.
+- [x] Validasi submit tetap menolak jika ada baris barang yang tidak memiliki foto (file baru maupun `existingUrl` pada mode edit).
+- [x] Pada mode edit konfirmasi, membatalkan file baru mengembalikan status indikator foto lama yang tersimpan.
+- [x] Tidak ada file yang diunggah ke Google Drive sebelum tombol submit ditekan.
+- [x] Tampilan responsif dan mudah digunakan pada mobile.
 
 ### Ruang lingkup
 
@@ -1474,6 +1474,19 @@ Menyediakan tombol hapus foto barang yang sudah dipilih pada form konfirmasi buy
 ### Rencana rollback
 
 Revert perubahan `Konfirmasi.html` dan `04_Backend_GAS/Konfirmasi.html` `[JST-019]`.
+
+### Hasil validasi
+
+- [x] `node tests/jst019_item_photo_action_check.js`: lulus (`JST-019 item photo action unit check passed.`).
+- [x] Test reset state: input file dikosongkan, object URL direvoke, atribut `src` dibersihkan, preview dan tombol hapus disembunyikan.
+- [x] Test source contract: tombol "Hapus Foto", handler clear, preview object URL, revoke saat replace, indikator foto lama, validasi new/existing photo, dan tiada RPC sebelum submit terverifikasi.
+- [x] Parse JavaScript `03_Konfirmasi_Pembelian/Konfirmasi.html`: lulus tanpa error sintaks.
+- [x] Sinkronisasi `03_Konfirmasi_Pembelian/Konfirmasi.html` dan `04_Backend_GAS/Konfirmasi.html`: identik (`cmp -s`).
+- [x] `git diff --check`: lulus tanpa trailing whitespace atau formatting issue.
+
+### Catatan review
+
+Implementasi JST-019 selesai pada source dan verifikasi logic lokal. Status diubah menjadi `REVIEW`. Menunggu approval manusia sebelum commit penutupan dan merge.
 
 ---
 

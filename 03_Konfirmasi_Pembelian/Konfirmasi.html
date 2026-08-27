@@ -71,6 +71,8 @@
     }
     .filebox input{border:0;padding:0;border-radius:0;box-shadow:none}
     .preview{max-width:92px;max-height:92px;border-radius:12px;object-fit:cover;border:1px solid var(--line);display:none}
+    .photo-preview-wrap{display:none;align-items:center;gap:10px;margin-top:6px}
+    .btn-clear-photo{border:1px solid #f2c7d5;background:#fff0f6;color:#a92858;padding:6px 10px;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer}
     .remove{border:0;background:#fff0f0;color:var(--danger);height:36px;width:36px;border-radius:11px;cursor:pointer;font-size:18px}
     .btn{
       border:0;border-radius:14px;padding:13px 17px;font:inherit;font-weight:800;cursor:pointer;
@@ -207,6 +209,15 @@
       $('#status').textContent = '';
     }
 
+    function resetItemPhotoState(fileInput, previewImg, previewWrap, objectUrl){
+      fileInput.value = '';
+      if(objectUrl) URL.revokeObjectURL(objectUrl);
+      previewImg.removeAttribute('src');
+      previewImg.style.display = 'none';
+      previewWrap.style.display = 'none';
+      return null;
+    }
+
     function addItem(item = {}){
       const container = $('#items');
       const index = container.children.length + 1;
@@ -225,24 +236,54 @@
             <input class="item-file" type="file" accept="image/*">
             ${item.photoUrl ? '<div class="help">Foto lama tersimpan. Upload foto baru hanya jika ingin menggantinya.</div>' : ''}
           </div>
-          <img class="preview" alt="Preview foto barang">
+          <div class="photo-preview-wrap">
+            <img class="preview" alt="Preview foto barang">
+            <button type="button" class="btn-clear-photo">Hapus Foto</button>
+          </div>
         </div>
         <button class="remove" type="button" title="Hapus barang">×</button>
       `;
 
+      let currentObjectUrl = null;
+      const fileInput = row.querySelector('.item-file');
+      const previewWrap = row.querySelector('.photo-preview-wrap');
+      const previewImg = row.querySelector('.preview');
+      const clearBtn = row.querySelector('.btn-clear-photo');
+      const helpExisting = row.querySelector('.help');
+
+      function clearSelectedFile() {
+        currentObjectUrl = resetItemPhotoState(fileInput, previewImg, previewWrap, currentObjectUrl);
+        if (helpExisting) helpExisting.style.display = '';
+      }
+
       row.querySelector('.remove').addEventListener('click', () => {
         if (container.children.length === 1) return alert('Minimal harus ada satu barang.');
+        clearSelectedFile();
         row.remove();
         renumberItems();
       });
 
-      row.querySelector('.item-file').addEventListener('change', e => {
+      fileInput.addEventListener('change', e => {
         const file = e.target.files[0];
-        const preview = row.querySelector('.preview');
-        if (!file) return preview.style.display = 'none';
-        preview.src = URL.createObjectURL(file);
-        preview.style.display = 'block';
+        if (currentObjectUrl) {
+          URL.revokeObjectURL(currentObjectUrl);
+          currentObjectUrl = null;
+        }
+        if (!file) {
+          previewImg.removeAttribute('src');
+          previewImg.style.display = 'none';
+          previewWrap.style.display = 'none';
+          if (helpExisting) helpExisting.style.display = '';
+          return;
+        }
+        currentObjectUrl = URL.createObjectURL(file);
+        previewImg.src = currentObjectUrl;
+        previewImg.style.display = 'block';
+        previewWrap.style.display = 'flex';
+        if (helpExisting) helpExisting.style.display = 'none';
       });
+
+      clearBtn.addEventListener('click', clearSelectedFile);
 
       container.appendChild(row);
       renumberItems();
