@@ -1991,3 +1991,93 @@ Review manusia menyetujui penutupan, sinkronisasi `CHANGELOG.md`, commit branch,
 - [x] Smoke test HTTP staging: root dan Konfirmasi dengan parameter query merespons HTTP 200; payload memuat `google.script.url.getLocation` serta fallback `URLSearchParams`.
 - [ ] Verifikasi render nomor rekening di browser staging dilakukan oleh jastiper/operator dengan membuka link jastip staging sintetis valid (`?shop=...`). Tidak ada data produksi atau token privat yang dicatat ke repository.
 - Rollback staging: redeploy deployment staging yang sama ke versi terverifikasi `@11`.
+
+---
+
+## JST-025 — Perbaikan render foto buyer dan bukti transfer pada Dashboard Jastiper
+
+- **Status:** `DONE`
+- **Jenis:** `fix`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-27
+- **Approval implementasi:** pengguna, 2026-08-27, teks `approved jst-025`.
+- **Approval penutupan dan staging:** pengguna, 2026-08-27, teks `approved`; mencakup penutupan JST-025, sinkronisasi CHANGELOG.md, dan commit branch. Tidak mencakup push, merge main, clasp, atau deployment.
+
+### Tujuan
+
+Memperbaiki fungsi pemuatan gambar (`loadImg`) pada Dashboard Jastiper agar foto barang dan bukti transfer yang tersimpan di Google Drive berhasil dirender setelah RPC `getJastiperImageData` mengembalikan data URI base64.
+
+### Acceptance criteria
+
+- [x] Fungsi pemuatan gambar asinkron tidak merusak referensi container DOM saat menampilkan status `Memuat…`.
+- [x] Callback sukses RPC `getJastiperImageData` memasukkan elemen gambar berisi data URI base64 ke container `.photo` tanpa error `TypeError: Cannot set properties of null`.
+- [x] Callback gagal RPC menampilkan `Gagal memuat` pada container foto.
+- [x] `02_Dashboard_Jastiper/Dashboard.html` dan `04_Backend_GAS/Dashboard.html` tetap identik.
+- [x] Isolasi tenant, verifikasi folder Drive `assertFileInFolder_`, validasi MIME `image/*`, dan otorisasi sesi server-side tetap terjaga.
+- [x] Test mandiri `tests/jst025_dashboard_image_render_check.js` memverifikasi skenario sukses dan gagal asinkron.
+- [x] Seluruh test lokal `jst016` hingga `jst025` lulus tanpa regresi.
+
+### Ruang lingkup
+
+- `02_Dashboard_Jastiper/Dashboard.html`
+- `04_Backend_GAS/Dashboard.html`
+- `tests/jst025_dashboard_image_render_check.js`
+- `PLAN.md`
+
+### Di luar ruang lingkup
+
+- Perubahan `04_Backend_GAS/Code.gs`, auth/sesi, atau logika Drive server-side.
+- Perubahan halaman Login atau Konfirmasi buyer.
+- Merge `main`, deployment staging, atau deployment produksi; semua memerlukan approval terpisah.
+
+### Bukti investigasi
+
+- Laporan pengguna: foto buyer tidak tampil di Dashboard meski file sudah masuk Google Drive.
+- `04_Backend_GAS/Code.gs` baris 476-490 mengubah file Drive milik folder jastiper menjadi `data:${mime};base64,...` setelah validasi sesi, parent folder, dan MIME.
+- `Dashboard.html` baris 187-191 menjalankan `img.parentElement.textContent='Memuat…'`. Operasi ini menghapus `img` dari DOM.
+- Saat callback asinkron sukses kembali, `img.parentElement` bernilai `null`. Akses `img.parentElement.innerHTML` melempar `TypeError: Cannot set properties of null (setting 'innerHTML')`; gambar gagal dirender.
+
+### Risiko keamanan/data
+
+- Akses file tetap lewat `getJastiperImageData`, yang memvalidasi sesi dan memastikan file berada dalam `user.driveFolderId` milik jastiper.
+- Respons data URI ditetapkan ke `src` elemen `<img>`; tidak ada URL Drive publik atau pencatatan token/data buyer.
+- Perubahan client-only tidak mengubah permission Drive, scope OAuth, atau batas tenant server-side.
+
+### Rencana implementasi
+
+1. Tunggu pengguna mengubah status menjadi `APPROVED`.
+2. Buat branch `fix/JST-025-dashboard-image-render`.
+3. Buat test reproduksi `tests/jst025_dashboard_image_render_check.js`; pastikan RED pada kode lama.
+4. Simpan referensi container sebelum status `Memuat…` mengganti child. Callback sukses membuat elemen `<img>`, menetapkan `src`, lalu memakai `container.replaceChildren(newImg)`; callback gagal mengisi `container.textContent`.
+5. Sinkronkan kedua template Dashboard.
+6. Validasi, catat bukti, lalu ubah status menjadi `REVIEW`.
+
+### Rencana validasi
+
+1. `node tests/jst025_dashboard_image_render_check.js`.
+2. Seluruh `tests/jst*.js`.
+3. Parse JavaScript seluruh template dengan `vm.Script`.
+4. `cmp -s 02_Dashboard_Jastiper/Dashboard.html 04_Backend_GAS/Dashboard.html`.
+5. `git diff --check`, pemeriksaan scope diff, dan scan rahasia/data pribadi.
+6. Setelah approval deployment staging terpisah: verifikasi foto barang dan bukti transfer sintetis tampil; file tenant lain tetap ditolak.
+
+### Rencana rollback
+
+Revert perubahan branch `fix/JST-025-dashboard-image-render`. Bila nanti dideploy ke staging, arahkan staging kembali ke versi terverifikasi `@13` setelah approval rollback. Tidak ada schema atau data sheet berubah.
+
+### Hasil validasi
+
+- [x] Test RED sebelum perbaikan: `node tests/jst025_dashboard_image_render_check.js` gagal dengan `AssertionError: Got unwanted exception` dan pesan aktual `Cannot set properties of null (setting 'innerHTML')`.
+- [x] Test GREEN setelah perbaikan: `node tests/jst025_dashboard_image_render_check.js` lulus dengan `JST-025 dashboard image render unit check passed.`
+- [x] Suite lokal lengkap `for f in tests/jst*_check.js; do node "$f" || exit 1; done` lulus untuk JST-016, JST-018, dan JST-019 sampai JST-025.
+- [x] Parser JavaScript enam template HTML kanonik/GAS lulus dengan `All template scripts parsed cleanly.`
+- [x] Template Login, Dashboard, dan Konfirmasi kanonik/GAS identik: `All template pairs identical.`
+- [x] `git diff --check` lulus tanpa error whitespace.
+- [x] Review scope: perubahan hanya pada dua template Dashboard, test JST-025, dan `PLAN.md`; tidak ada perubahan backend, auth, schema, manifest, dependency, atau deployment.
+- [x] Security review: endpoint tetap `getJastiperImageData`, dengan `requireSession_`, verifikasi parent folder `assertFileInFolder_`, dan MIME `image/*`; tidak ada temuan kerentanan baru berkeyakinan tinggi.
+- [x] Scan pola secret dan URL Drive privat lulus dengan `Secret and private URL pattern check clean.`
+- [ ] Verifikasi visual runtime memakai foto barang dan bukti transfer sintetis menunggu approval deployment staging terpisah.
+
+### Catatan review
+
+Review manusia menyetujui penutupan pekerjaan JST-025, sinkronisasi `CHANGELOG.md`, dan pembuatan commit branch pada 2026-08-27 melalui teks `approved`. Merge `main`, clasp push, deployment staging, dan deployment produksi tidak dilakukan.

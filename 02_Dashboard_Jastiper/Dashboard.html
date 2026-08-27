@@ -185,9 +185,15 @@
     document.querySelectorAll('.lazy').forEach(i=>state.observer.observe(i));
   }
   function loadImg(img){
-    img.parentElement.textContent='Memuat…';
-    google.script.run.withSuccessHandler(src=>{img.src=src;img.parentElement.innerHTML='';img.parentElement.appendChild(img)})
-      .withFailureHandler(()=>{img.parentElement.textContent='Gagal memuat'}).getJastiperImageData(state.sessionToken,img.dataset.url);
+    const container=img.parentElement;
+    if(!container)return;
+    const url=img.dataset.url;
+    container.textContent='Memuat…';
+    google.script.run.withSuccessHandler(src=>{
+      const loadedImg=document.createElement('img');
+      loadedImg.src=src;
+      container.replaceChildren(loadedImg);
+    }).withFailureHandler(()=>{container.textContent='Gagal memuat'}).getJastiperImageData(state.sessionToken,url);
   }
 
   document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{

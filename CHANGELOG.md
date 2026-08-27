@@ -30,6 +30,8 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 - Tab `Data Buyer` dan `Pengaturan Jastip` pada Dashboard Jastiper kini berpindah panel sesuai klik (`JST-022`).
 - Tombol `Simpan Pengaturan` Dashboard kembali mengirim profil dan rekening valid serta memulihkan status tombol setelah respons (`JST-023`).
 - Inisialisasi formulir konfirmasi buyer membaca parameter URL host Web App melalui `google.script.url.getLocation` pada runtime iframe GAS (`JST-024`).
+- Pemuatan foto barang dan bukti transfer pada Dashboard Jastiper menyimpan container DOM sebelum status memuat sehingga respons data URI base64 dari Google Drive berhasil dirender (`JST-025`).
+
 
 ## Aturan pencatatan
 
