@@ -18,7 +18,7 @@ const ORDER_HEADERS = [
 const USER_HEADERS = [
   'jastiperId','createdAt','updatedAt','namaJastip','namaPemilik','email','noHp',
   'passwordSalt','passwordHash','shareCode','driveFolderId',
-  'briNumber','briName','bsiNumber','bsiName','status'
+  'briNumber','briName','bsiNumber','bsiName','status','bankAccountsJson'
 ];
 
 const SESSION_HEADERS = ['tokenHash','jastiperId','createdAt','expiresAt'];
@@ -99,7 +99,7 @@ function signupJastiper(payload) {
   users.appendRow([
     jastiperId, now, now, namaJastip, namaPemilik, email, noHp,
     salt, passwordHash, shareCode, folder.getId(),
-    '', '', '', '', 'active'
+    '', '', '', '', 'active', ''
   ]);
 
   const session = createSession_(jastiperId);
@@ -194,10 +194,18 @@ function updateJastiperSettings(sessionToken, payload) {
     set('namaPemilik', namaPemilik);
     set('email', email);
     set('noHp', noHp);
-    set('briNumber', clean_(payload.briNumber, 80));
-    set('briName', clean_(payload.briName, 120));
-    set('bsiNumber', clean_(payload.bsiNumber, 80));
-    set('bsiName', clean_(payload.bsiName, 120));
+    if (Object.prototype.hasOwnProperty.call(payload, 'bankAccounts')) {
+      const bankAccounts = cleanBankAccounts_(payload.bankAccounts);
+      set('bankAccountsJson', JSON.stringify(bankAccounts));
+
+      // Tetap simpan fallback legacy BRI / BSI jika ada di list untuk backward compatibility
+      const briLegacy = bankAccounts.find(b => /^bri$/i.test(b.bankName));
+      const bsiLegacy = bankAccounts.find(b => /^bsi$/i.test(b.bankName));
+      set('briNumber', briLegacy ? briLegacy.accountNumber : '');
+      set('briName', briLegacy ? briLegacy.accountHolder : '');
+      set('bsiNumber', bsiLegacy ? bsiLegacy.accountNumber : '');
+      set('bsiName', bsiLegacy ? bsiLegacy.accountHolder : '');
+    }
 
     if (!emailChanged) {
       users.getRange(found.row, 1, 1, USER_HEADERS.length).setValues([updated]);
@@ -276,10 +284,7 @@ function getPublicConfig(shareCode, orderId, editToken) {
       namaJastip: user.namaJastip,
       shareCode: user.shareCode
     },
-    bankAccounts: {
-      BRI: {number: user.briNumber || '', name: user.briName || ''},
-      BSI: {number: user.bsiNumber || '', name: user.bsiName || ''}
-    }
+    bankAccounts: parseBankAccounts_(user)
   };
 }
 
@@ -320,6 +325,17 @@ function saveConfirmation(payload) {
     throw new Error('Akun jastiper tidak aktif.');
   }
 
+  const validAccounts = parseBankAccounts_(user);
+  if (!validAccounts.length) throw new Error('Jastiper belum mengatur rekening transfer.');
+  const selected = clean_(payload.bankTujuan, 100);
+  const matched = validAccounts.some(acc => {
+    const value = bankAccountValue_(acc);
+    return value === selected || acc.bankName === selected;
+  });
+  if (!matched) {
+    throw new Error('Pilihan rekening bank tidak valid untuk jastiper ini.');
+  }
+
   const uploadedItems = [];
   const incomingItems = Array.isArray(payload.items) ? payload.items : [];
 
@@ -358,7 +374,7 @@ function saveConfirmation(payload) {
     clean_(payload.alamat, 5000),
     clean_(payload.noHp, 80),
     clean_(payload.ekspedisi, 80),
-    clean_(payload.bankTujuan, 80),
+    clean_(payload.bankTujuan, 100),
     JSON.stringify(uploadedItems),
     proofUrl
   ];
@@ -700,11 +716,77 @@ function publicProfile_(user) {
     email:user.email,
     noHp:user.noHp,
     shareCode:user.shareCode,
+    bankAccounts: parseBankAccounts_(user),
     briNumber:user.briNumber || '',
     briName:user.briName || '',
     bsiNumber:user.bsiNumber || '',
     bsiName:user.bsiName || ''
   };
+}
+
+function cleanBankAccounts_(rawList) {
+  if (rawList == null) return [];
+  if (!Array.isArray(rawList)) throw new Error('Format rekening bank tidak valid.');
+  if (rawList.length > 10) throw new Error('Maksimal 10 rekening bank.');
+  const cleaned = [];
+  for (let i = 0; i < rawList.length; i++) {
+    const item = rawList[i] || {};
+    const bankName = String(item.bankName || '').trim();
+    const accountNumber = String(item.accountNumber || '').trim();
+    const accountHolder = String(item.accountHolder || '').trim();
+
+    if (!bankName && !accountNumber && !accountHolder) continue;
+    if (!bankName || !accountNumber || !accountHolder) {
+      throw new Error(`Rekening ke-${i+1}: Nama bank, nomor rekening, dan nama pemilik wajib diisi.`);
+    }
+    if (bankName.length > 40) throw new Error(`Rekening ke-${i+1}: Nama bank maksimal 40 karakter.`);
+    if (/^[=+\-@]/.test(bankName) || /^[=+\-@]/.test(accountNumber) || /^[=+\-@]/.test(accountHolder)) {
+      throw new Error(`Rekening ke-${i+1}: Data rekening tidak valid.`);
+    }
+    if (accountNumber.length < 4 || accountNumber.length > 40) {
+      throw new Error(`Rekening ${bankName}: Nomor rekening harus 4–40 karakter.`);
+    }
+    if (accountHolder.length > 120) {
+      throw new Error(`Rekening ${bankName}: Nama pemilik maksimal 120 karakter.`);
+    }
+    cleaned.push({ bankName, accountNumber, accountHolder });
+  }
+  return cleaned;
+}
+
+function parseBankAccounts_(user) {
+  if (!user) return [];
+  const jsonStr = String(user.bankAccountsJson || '').trim();
+  if (jsonStr) {
+    try {
+      const parsed = JSON.parse(jsonStr);
+      if (!Array.isArray(parsed)) return [];
+      return cleanBankAccounts_(parsed);
+    } catch (e) {
+      return [];
+    }
+  }
+  // Fallback rekening legacy BRI / BSI hanya saat JSON belum pernah disimpan
+  const fallback = [];
+  if (user.briNumber) {
+    fallback.push({
+      bankName: 'BRI',
+      accountNumber: String(user.briNumber),
+      accountHolder: String(user.briName || '-')
+    });
+  }
+  if (user.bsiNumber) {
+    fallback.push({
+      bankName: 'BSI',
+      accountNumber: String(user.bsiNumber),
+      accountHolder: String(user.bsiName || '-')
+    });
+  }
+  return cleanBankAccounts_(fallback);
+}
+
+function bankAccountValue_(account) {
+  return `${account.bankName} - ${account.accountNumber}`;
 }
 
 function buildShareUrl_(shareCode) {

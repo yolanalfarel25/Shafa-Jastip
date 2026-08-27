@@ -154,17 +154,8 @@
 
       <section class="section">
         <h2 class="section-title">💳 Informasi Transfer</h2>
-        <div class="bank-options">
-          <div class="choice">
-            <input type="radio" name="bankTujuan" value="BRI" id="bankBri" required>
-            <label for="bankBri"><span class="icon">🏦</span><span><b>BRI</b><br><small id="briAccount">Memuat rekening…</small></span></label>
-          </div>
-          <div class="choice">
-            <input type="radio" name="bankTujuan" value="BSI" id="bankBsi">
-            <label for="bankBsi"><span class="icon">💳</span><span><b>BSI</b><br><small id="bsiAccount">Belum tersedia</small></span></label>
-          </div>
-        </div>
-        <div class="bank-note" id="bankOwner"></div>
+        <div id="bankOptions" class="bank-options"></div>
+        <div class="bank-note" id="bankOwner">Memuat rekening…</div>
 
         <div style="margin-top:16px">
           <label>Upload Bukti Transfer <span style="font-weight:500;color:var(--muted)">(opsional)</span></label>
@@ -194,6 +185,7 @@
 
   <script>
     let appConfig = null;
+    let pendingBankValue = '';
     let editState = { orderId:'', editToken:'', editUrl:'', shareCode:'' };
     const $ = s => document.querySelector(s);
 
@@ -319,21 +311,64 @@
       editState.shareCode = cfg.jastiper?.shareCode || editState.shareCode;
       $('#shopBadge').textContent = cfg.jastiper?.namaJastip ? `Form milik ${cfg.jastiper.namaJastip}` : '';
 
-      const bri = cfg.bankAccounts.BRI || {number:'',name:''};
-      const bsi = cfg.bankAccounts.BSI || {number:'',name:''};
+      const container = $('#bankOptions');
+      container.replaceChildren();
+      const accounts = Array.isArray(cfg.bankAccounts) ? cfg.bankAccounts : [];
 
-      $('#briAccount').textContent = bri.number ? `${bri.number}${bri.name ? ' • a.n. ' + bri.name : ''}` : 'Belum tersedia';
-      $('#bsiAccount').textContent = bsi.number ? `${bsi.number}${bsi.name ? ' • a.n. ' + bsi.name : ''}` : 'Belum tersedia';
-
-      const briChoice = $('#bankBri').closest('.choice');
-      const bsiChoice = $('#bankBsi').closest('.choice');
-      briChoice.style.display = bri.number ? '' : 'none';
-      bsiChoice.style.display = bsi.number ? '' : 'none';
-
-      if(!bri.number && !bsi.number){
-        showStatus('Jastiper belum mengatur rekening transfer. Silakan hubungi jastiper.', 'error');
+      if (!accounts.length) {
+        $('#bankOwner').textContent = 'Jastiper belum mengatur rekening transfer. Silakan hubungi jastiper.';
+        $('#bankOwner').style.color = 'var(--danger)';
+        return;
       }
+
       $('#bankOwner').textContent = '';
+      $('#bankOwner').style.color = '';
+      accounts.forEach((acc, i) => {
+        const choice = document.createElement('div');
+        choice.className = 'choice';
+
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'bankTujuan';
+        radio.id = `bank_${i}`;
+        radio.value = `${acc.bankName} - ${acc.accountNumber}`;
+        radio.dataset.bankName = acc.bankName;
+        if (i === 0) radio.required = true;
+
+        const label = document.createElement('label');
+        label.htmlFor = radio.id;
+
+        const icon = document.createElement('span');
+        icon.className = 'icon';
+        icon.textContent = '🏦';
+
+        const textWrap = document.createElement('span');
+        const bankTitle = document.createElement('b');
+        bankTitle.textContent = acc.bankName;
+        const br = document.createElement('br');
+        const detail = document.createElement('small');
+        detail.textContent = `${acc.accountNumber}${acc.accountHolder ? ' • a.n. ' + acc.accountHolder : ''}`;
+
+        textWrap.appendChild(bankTitle);
+        textWrap.appendChild(br);
+        textWrap.appendChild(detail);
+
+        label.appendChild(icon);
+        label.appendChild(textWrap);
+
+        choice.appendChild(radio);
+        choice.appendChild(label);
+        container.appendChild(choice);
+      });
+
+      if (pendingBankValue) selectBank(pendingBankValue);
+    }
+
+    function selectBank(val) {
+      if (!val) return;
+      const radios = [...document.querySelectorAll('input[name="bankTujuan"]')];
+      const match = radios.find(r => r.value === val || r.dataset.bankName === val);
+      if (match) match.checked = true;
     }
 
     function loadEditData(orderId, token){
@@ -352,8 +387,8 @@
 
           const ship = document.querySelector(`input[name="ekspedisi"][value="${CSS.escape(data.ekspedisi || '')}"]`);
           if(ship) ship.checked = true;
-          const bank = document.querySelector(`input[name="bankTujuan"][value="${CSS.escape(data.bankTujuan || '')}"]`);
-          if(bank) bank.checked = true;
+          pendingBankValue = data.bankTujuan || '';
+          selectBank(pendingBankValue);
 
           $('#items').innerHTML = '';
           (data.items?.length ? data.items : [{}]).forEach(addItem);

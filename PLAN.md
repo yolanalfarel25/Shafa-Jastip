@@ -1344,7 +1344,7 @@ Temuan runtime setelah ST-01 dan ST-02:
 
 ## JST-018 — Pengaturan multi-rekening bank transfer jastiper
 
-- **Status:** `APPROVED`
+- **Status:** `REVIEW`
 - **Jenis:** `feat`
 - **Pemilik:** agen implementasi
 - **Dibuat:** 2026-08-27
@@ -1356,15 +1356,15 @@ Memungkinkan jastiper menambah, mengubah, dan menghapus daftar pilihan rekening 
 
 ### Acceptance criteria
 
-- [ ] Dashboard menyediakan UI dinamis untuk menambah/menghapus baris rekening: nama bank, nomor rekening, nama pemilik rekening.
-- [ ] Nama bank fleksibel (misal BRI, Mandiri, BCA, BSI, dll.).
-- [ ] Client dan server memvalidasi struktur array: nama bank 1–40 karakter, nomor rekening 4–40 karakter, nama pemilik 1–120 karakter.
-- [ ] Jastiper dapat menyimpan 0–10 rekening; jika kosong, form buyer memberi tahu rekening belum diatur.
-- [ ] Form buyer merender rekening aktif dinamis sebagai radio beserta nama bank, nomor, dan nama pemilik.
-- [ ] Backend menyimpan array JSON terstruktur pada kolom `bankAccountsJson`, dengan fallback baca kolom lama `briNumber`, `briName`, `bsiNumber`, `bsiName` agar akun lama tetap berfungsi tanpa migrasi destruktif.
-- [ ] `getPublicConfig` hanya menyajikan rekening jastiper pemilik share code/order terkait.
-- [ ] Semua input dirender aman memakai `textContent` atau encoding HTML.
-- [ ] Update rekening memerlukan sesi jastiper valid server-side.
+- [x] Dashboard menyediakan UI dinamis untuk menambah/menghapus baris rekening: nama bank, nomor rekening, nama pemilik rekening.
+- [x] Nama bank fleksibel (misal BRI, Mandiri, BCA, BSI, dll.).
+- [x] Client dan server memvalidasi struktur array: nama bank 1–40 karakter, nomor rekening 4–40 karakter, nama pemilik 1–120 karakter.
+- [x] Jastiper dapat menyimpan 0–10 rekening; jika kosong, form buyer memberi tahu rekening belum diatur.
+- [x] Form buyer merender rekening aktif dinamis sebagai radio beserta nama bank, nomor, dan nama pemilik.
+- [x] Backend menyimpan array JSON terstruktur pada kolom `bankAccountsJson`, dengan fallback baca kolom lama `briNumber`, `briName`, `bsiNumber`, `bsiName` agar akun lama tetap berfungsi tanpa migrasi destruktif.
+- [x] `getPublicConfig` hanya menyajikan rekening jastiper pemilik share code/order terkait.
+- [x] Semua input dirender aman memakai `textContent` atau encoding HTML.
+- [x] Update rekening memerlukan sesi jastiper valid server-side.
 
 ### Ruang lingkup
 
@@ -1411,6 +1411,21 @@ Memungkinkan jastiper menambah, mengubah, dan menghapus daftar pilihan rekening 
 ### Rencana rollback
 
 Revert perubahan `[JST-018]`. Kode lama mengabaikan kolom tambahan; empat kolom rekening lama tidak dihapus.
+
+### Hasil validasi
+
+- [x] `node tests/jst018_multi_rekening_check.js`: lulus (`JST-018 multi-rekening unit check passed.`).
+- [x] Validasi server-side: batas 0–10 rekening, nama bank 1–40 karakter, no rekening 4–40 karakter, nama pemilik 1–120 karakter, penolakan karakter formula spreadsheet (`=+-@`).
+- [x] Fallback akun lama: akun tanpa `bankAccountsJson` tetap membaca nilai kolom lama BRI dan BSI; saat jastiper menyimpan konfigurasi baru, `bankAccountsJson` menjadi sumber tunggal.
+- [x] Keamanan render buyer: nama bank dan detail rekening dirender aman melalui DOM `textContent`, mencegah XSS dari input jastiper.
+- [x] Validasi submit buyer: server memverifikasi pilihan rekening memang terdaftar pada jastiper pemilik share code terkait.
+- [x] Parse JavaScript `Dashboard.html`, `Konfirmasi.html`, `Code.gs` beserta template deployment `04_Backend_GAS/`: lulus tanpa error sintaks.
+- [x] Sinkronisasi template deployment `04_Backend_GAS/` identik dengan file kanonik (`cmp -s`).
+- [x] `git diff --check`: lulus tanpa trailing whitespace atau formatting issue.
+
+### Catatan review
+
+Implementasi JST-018 selesai pada source dan verifikasi logic lokal. Status diubah menjadi `REVIEW`. Menunggu approval manusia sebelum commit penutupan dan merge.
 
 ---
 
