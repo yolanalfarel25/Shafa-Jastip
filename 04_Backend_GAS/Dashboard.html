@@ -82,17 +82,24 @@
 </main>
 
 <script>
-  const webAppUrl = "<?= typeof webAppUrl !== 'undefined' ? webAppUrl : '' ?>";
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwAKQv0i7cYNZatxUpKjbAqs9ALq_kMmkj0EM6v_nuzkf44Sp0l_VGU2PfxLnBEm7g/exec';
+
+  async function callApi(action, payload){
+    const response=await fetch(API_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({...(payload||{}),action}),
+      redirect:'follow',
+      cache:'no-store'
+    });
+    if(!response.ok)throw new Error(`Gagal menghubungi server (${response.status}).`);
+    const data=await response.json();
+    if(!data||data.ok===false||data.error)throw new Error(data?.error||'Respons server tidak valid.');
+    return data;
+  }
 
   function navigatePage(page) {
-    const target = webAppUrl
-      ? (webAppUrl + '?page=' + encodeURIComponent(page))
-      : ('?page=' + encodeURIComponent(page));
-    try {
-      window.top.location.replace(target);
-    } catch (error) {
-      window.location.replace(target);
-    }
+    window.location.replace(page==='dashboard'?'dashboard.html':'login.html');
   }
 
   const state={sessionToken:'',profile:null,shareUrl:'',observer:null};
@@ -148,10 +155,13 @@
     (p.bankAccounts||[]).forEach(addBankRow);
   }
 
-  function loadDashboard(){
+  async function loadDashboard(){
     $('#list').className='empty';$('#list').textContent='Memuat data…';
-    google.script.run.withSuccessHandler(renderDashboard).withFailureHandler(e=>{$('#list').textContent=e.message||String(e)})
-      .getJastiperDashboard(state.sessionToken,$('#search').value);
+    try{
+      renderDashboard(await callApi('getJastiperDashboard',{sessionToken:state.sessionToken,searchText:$('#search').value}));
+    }catch(e){
+      $('#list').textContent=e.message||String(e);
+    }
   }
 
   function renderDashboard(data){
@@ -184,16 +194,17 @@
     state.observer=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){state.observer.unobserve(e.target);loadImg(e.target)}}),{rootMargin:'220px'});
     document.querySelectorAll('.lazy').forEach(i=>state.observer.observe(i));
   }
-  function loadImg(img){
+  async function loadImg(img){
     const container=img.parentElement;
     if(!container)return;
     const url=img.dataset.url;
     container.textContent='Memuat…';
-    google.script.run.withSuccessHandler(src=>{
+    try{
+      const src=await callApi('getJastiperImageData',{sessionToken:state.sessionToken,driveFileUrl:url});
       const loadedImg=document.createElement('img');
       loadedImg.src=src;
       container.replaceChildren(loadedImg);
-    }).withFailureHandler(()=>{container.textContent='Gagal memuat'}).getJastiperImageData(state.sessionToken,url);
+    }catch(e){container.textContent='Gagal memuat'}
   }
 
   document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
@@ -210,7 +221,7 @@
   $('#addBankBtn').onclick=()=>addBankRow();
   let timer;$('#search').oninput=()=>{clearTimeout(timer);timer=setTimeout(loadDashboard,350)};
 
-  $('#saveSettings').onclick=()=>{
+  $('#saveSettings').onclick=async()=>{
     const btn=$('#saveSettings');
     const bankAccounts=collectBankAccounts();
     for(let i=0;i<bankAccounts.length;i++){
@@ -224,7 +235,14 @@
     }
 
     busy(btn,true,'Menyimpan…');
-    google.script.run.withSuccessHandler(res=>{
+    try{
+      const res=await callApi('updateJastiperSettings',{sessionToken:state.sessionToken,payload:{
+        namaJastip:$('#pNamaJastip').value,
+        namaPemilik:$('#pNamaPemilik').value,
+        email:$('#pEmail').value,
+        noHp:$('#pNoHp').value,
+        bankAccounts
+      }});
       busy(btn,false,'Simpan Pengaturan');
       if(res.sessionInvalidated){
         localStorage.removeItem('jastipSession');state.sessionToken='';
@@ -232,36 +250,22 @@
         navigatePage('login');return;
       }
       state.profile=res.profile;state.shareUrl=res.shareUrl;showApp();alert('Pengaturan tersimpan.');
-    })
-      .withFailureHandler(e=>{busy(btn,false,'Simpan Pengaturan');alert(e.message||String(e))})
-      .updateJastiperSettings(state.sessionToken,{
-        namaJastip:$('#pNamaJastip').value,
-        namaPemilik:$('#pNamaPemilik').value,
-        email:$('#pEmail').value,
-        noHp:$('#pNoHp').value,
-        bankAccounts
-      });
+    }catch(e){busy(btn,false,'Simpan Pengaturan');alert(e.message||String(e))}
   };
 
-  $('#logoutBtn').onclick=()=>{
+  $('#logoutBtn').onclick=async()=>{
     const t=state.sessionToken;localStorage.removeItem('jastipSession');state.sessionToken='';
     $('#logoutBtn').disabled=true;
-    google.script.run
-      .withSuccessHandler(()=>navigatePage('login'))
-      .withFailureHandler(()=>navigatePage('login'))
-      .logoutJastiper(t);
+    try{await callApi('logoutJastiper',{sessionToken:t})}finally{navigatePage('login')}
   };
 
   const saved=localStorage.getItem('jastipSession');
   if(saved){
     state.sessionToken=saved;
-    google.script.run
-      .withSuccessHandler(authSuccess)
-      .withFailureHandler(()=>{
-        localStorage.removeItem('jastipSession');
-        navigatePage('login');
-      })
-      .getJastiperSession(saved);
+    callApi('getJastiperSession',{sessionToken:saved}).then(authSuccess).catch(()=>{
+      localStorage.removeItem('jastipSession');
+      navigatePage('login');
+    });
   } else {
     navigatePage('login');
   }

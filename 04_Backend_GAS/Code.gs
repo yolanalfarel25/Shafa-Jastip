@@ -27,6 +27,61 @@ const EMAIL_HISTORY_HEADERS = [
   'historyId','jastiperId','oldEmail','newEmail','changedAt','status','errorCode'
 ];
 
+function doPost(e) {
+  try {
+    let raw = '';
+    if (e && e.postData && e.postData.contents) {
+      raw = e.postData.contents;
+    }
+    const body = safeJsonParse_(raw, {});
+    const action = String(body.action || '').trim();
+
+    switch (action) {
+      case 'signupJastiper':
+        return jsonResponse_(signupJastiper(body.payload));
+      case 'loginJastiper':
+        return jsonResponse_(loginJastiper(body.email, body.password));
+      case 'getJastiperSession':
+        return jsonResponse_(getJastiperSession(body.sessionToken));
+      case 'logoutJastiper':
+        return jsonResponse_(logoutJastiper(body.sessionToken));
+      case 'updateJastiperSettings':
+        return jsonResponse_(updateJastiperSettings(body.sessionToken, body.payload));
+      case 'getPublicConfig':
+        return jsonResponse_(getPublicConfig(body.shareCode, body.orderId, body.editToken));
+      case 'saveConfirmation':
+        return jsonResponse_(saveConfirmation(body.payload));
+      case 'getConfirmation':
+        return jsonResponse_(getConfirmation(body.orderId, body.editToken));
+      case 'getJastiperDashboard':
+        return jsonResponse_(getJastiperDashboard(body.sessionToken, body.searchText));
+      case 'getJastiperImageData':
+        return jsonResponse_(getJastiperImageData(body.sessionToken, body.driveFileUrl));
+      default:
+        return jsonResponse_({ ok: false, error: 'Aksi API tidak valid: ' + (action || 'kosong') });
+    }
+  } catch (err) {
+    return jsonResponse_({ ok: false, error: err.message || String(err) });
+  }
+}
+
+function jsonResponse_(obj) {
+  const output = ContentService.createTextOutput(JSON.stringify(obj));
+  output.setMimeType(ContentService.MimeType.JSON);
+  return output;
+}
+
+function getFrontendBaseUrl_() {
+  const custom = String(
+    PropertiesService.getScriptProperties().getProperty('FRONTEND_BASE_URL') || ''
+  ).trim();
+  if (!custom) return ScriptApp.getService().getUrl();
+  if (!/^https:\/\/[a-z0-9.-]+(?::\d+)?(?:\/[^?#]*)?$/i.test(custom)) {
+    throw new Error('Konfigurasi FRONTEND_BASE_URL tidak valid.');
+  }
+  return custom.replace(/\/+$/, '');
+}
+
 function doGet(e) {
   const page = String((e && e.parameter && e.parameter.page) || '').toLowerCase();
 
@@ -42,7 +97,6 @@ function doGet(e) {
   }
 
   const template = HtmlService.createTemplateFromFile(fileName);
-  template.webAppUrl = ScriptApp.getService().getUrl();
 
   return template
     .evaluate()
@@ -385,7 +439,7 @@ function saveConfirmation(payload) {
     orders.appendRow(values);
   }
 
-  const baseUrl = ScriptApp.getService().getUrl();
+  const baseUrl = getFrontendBaseUrl_();
   return {
     ok: true,
     orderId,
@@ -790,7 +844,7 @@ function bankAccountValue_(account) {
 }
 
 function buildShareUrl_(shareCode) {
-  return `${ScriptApp.getService().getUrl()}?shop=${encodeURIComponent(shareCode)}`;
+  return `${getFrontendBaseUrl_()}?shop=${encodeURIComponent(shareCode)}`;
 }
 
 function getVerifiedOrder_(orderId, token) {

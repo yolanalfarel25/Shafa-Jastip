@@ -19,17 +19,17 @@ const konfirmasiHtml = fs.readFileSync(konfirmasiHtmlPath, 'utf8');
 const script = new vm.Script(codeGs);
 assert.ok(script, 'Code.gs syntax check OK');
 
-// 3. Check automatic top-level navigation using server-bound URL
-assert.ok(loginHtml.includes('const webAppUrl = "<?= typeof webAppUrl !== \'undefined\' ? webAppUrl : \'\' ?>";'), 'Login.html has webAppUrl');
+// 3. Check automatic static navigation
+assert.ok(loginHtml.includes('API_URL'), 'Login.html has API_URL endpoint configuration');
 assert.ok(loginHtml.includes('function navigatePage(page)'), 'Login.html has navigatePage');
-assert.ok(loginHtml.includes('window.top.location.replace(target)'), 'Login.html targets top viewport');
-assert.ok(loginHtml.includes('navigatePage(\'dashboard\')'), 'Login.html automatically navigates to dashboard on auth');
+assert.ok(loginHtml.includes("window.location.replace(page==='dashboard'?'dashboard.html':'login.html')"), 'Login.html navigates to static pages');
+assert.ok(loginHtml.includes("navigatePage('dashboard')"), 'Login.html automatically navigates to dashboard on auth');
 assert.ok(!loginHtml.includes('id="navManualLink"'), 'Login.html has no manual link button');
 
-assert.ok(dashboardHtml.includes('const webAppUrl = "<?= typeof webAppUrl !== \'undefined\' ? webAppUrl : \'\' ?>";'), 'Dashboard.html has webAppUrl');
+assert.ok(dashboardHtml.includes('API_URL'), 'Dashboard.html has API_URL endpoint configuration');
 assert.ok(dashboardHtml.includes('function navigatePage(page)'), 'Dashboard.html has navigatePage');
-assert.ok(dashboardHtml.includes('window.top.location.replace(target)'), 'Dashboard.html targets top viewport');
-assert.ok(dashboardHtml.includes('navigatePage(\'login\')'), 'Dashboard.html navigates to login on logout/session expiry');
+assert.ok(dashboardHtml.includes("window.location.replace(page==='dashboard'?'dashboard.html':'login.html')"), 'Dashboard.html navigates to static pages');
+assert.ok(dashboardHtml.includes("navigatePage('login')"), 'Dashboard.html navigates to login on logout/session expiry');
 assert.ok(!dashboardHtml.includes('id="navManualLink"'), 'Dashboard.html has no manual link button');
 
 // 4. Test doGet in vm sandbox
@@ -52,8 +52,7 @@ const fakeHtmlService = {
     return {
       evaluate: function() {
         evaluatedTemplates.push({
-          filename,
-          webAppUrl: this.webAppUrl
+          filename
         });
         return {
           setTitle: () => ({
@@ -88,24 +87,20 @@ vm.runInContext(codeGs, sandbox);
 sandbox.doGet({});
 assert.strictEqual(evaluatedTemplates.length, 1);
 assert.strictEqual(evaluatedTemplates[0].filename, 'Konfirmasi');
-assert.strictEqual(evaluatedTemplates[0].webAppUrl, 'https://script.google.com/macros/s/STAGING_ID/exec');
 
 // Test doGet with page=dashboard
 sandbox.doGet({ parameter: { page: 'dashboard' } });
 assert.strictEqual(evaluatedTemplates.length, 2);
 assert.strictEqual(evaluatedTemplates[1].filename, 'Dashboard');
-assert.strictEqual(evaluatedTemplates[1].webAppUrl, 'https://script.google.com/macros/s/STAGING_ID/exec');
 
 // Test doGet with page=login
 sandbox.doGet({ parameter: { page: 'login' } });
 assert.strictEqual(evaluatedTemplates.length, 3);
 assert.strictEqual(evaluatedTemplates[2].filename, 'Login');
-assert.strictEqual(evaluatedTemplates[2].webAppUrl, 'https://script.google.com/macros/s/STAGING_ID/exec');
 
 // Test doGet with page=account
 sandbox.doGet({ parameter: { page: 'account' } });
 assert.strictEqual(evaluatedTemplates.length, 4);
 assert.strictEqual(evaluatedTemplates[3].filename, 'Login');
-assert.strictEqual(evaluatedTemplates[3].webAppUrl, 'https://script.google.com/macros/s/STAGING_ID/exec');
 
 console.log('JST-020 auth auto-navigation unit check passed.');

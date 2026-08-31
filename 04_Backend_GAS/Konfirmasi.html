@@ -186,6 +186,22 @@
   </main>
 
   <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwAKQv0i7cYNZatxUpKjbAqs9ALq_kMmkj0EM6v_nuzkf44Sp0l_VGU2PfxLnBEm7g/exec';
+
+    async function callApi(action, payload){
+      const response=await fetch(API_URL,{
+        method:'POST',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body:JSON.stringify({...(payload||{}),action}),
+        redirect:'follow',
+        cache:'no-store'
+      });
+      if(!response.ok)throw new Error(`Gagal menghubungi server (${response.status}).`);
+      const data=await response.json();
+      if(!data||data.ok===false||data.error)throw new Error(data?.error||'Respons server tidak valid.');
+      return data;
+    }
+
     let appConfig = null;
     let pendingBankValue = '';
     let editState = { orderId:'', editToken:'', editUrl:'', shareCode:'' };
@@ -412,34 +428,34 @@
       if (match) match.checked = true;
     }
 
-    function loadEditData(orderId, token){
+    async function loadEditData(orderId, token){
       showStatus('Memuat data sebelumnya…');
-      google.script.run
-        .withSuccessHandler(data => {
-          clearStatus();
-          editState.orderId = orderId;
-          editState.editToken = token;
-          $('#editBadge').style.display = 'block';
-          $('#submitBtn').textContent = 'Perbarui Data';
+      try{
+        const data = await callApi('getConfirmation', { orderId, editToken: token });
+        clearStatus();
+        editState.orderId = orderId;
+        editState.editToken = token;
+        $('#editBadge').style.display = 'block';
+        $('#submitBtn').textContent = 'Perbarui Data';
 
-          $('#namaLengkap').value = data.namaLengkap || '';
-          $('#alamat').value = data.alamat || '';
-          $('#noHp').value = data.noHp || '';
+        $('#namaLengkap').value = data.namaLengkap || '';
+        $('#alamat').value = data.alamat || '';
+        $('#noHp').value = data.noHp || '';
 
-          const ship = document.querySelector(`input[name="ekspedisi"][value="${CSS.escape(data.ekspedisi || '')}"]`);
-          if(ship) ship.checked = true;
-          pendingBankValue = data.bankTujuan || '';
-          selectBank(pendingBankValue);
+        const ship = document.querySelector(`input[name="ekspedisi"][value="${CSS.escape(data.ekspedisi || '')}"]`);
+        if(ship) ship.checked = true;
+        pendingBankValue = data.bankTujuan || '';
+        selectBank(pendingBankValue);
 
-          $('#items').innerHTML = '';
-          (data.items?.length ? data.items : [{}]).forEach(addItem);
+        $('#items').innerHTML = '';
+        (data.items?.length ? data.items : [{}]).forEach(addItem);
 
-          if(data.buktiTransferUrl){
-            $('#existingProof').innerHTML = 'Bukti transfer lama sudah tersimpan. Upload file baru hanya jika ingin menggantinya.';
-          }
-        })
-        .withFailureHandler(err => showStatus(err.message || String(err), 'error'))
-        .getConfirmation(orderId, token);
+        if(data.buktiTransferUrl){
+          $('#existingProof').innerHTML = 'Bukti transfer lama sudah tersimpan. Upload file baru hanya jika ingin menggantinya.';
+        }
+      }catch(err){
+        showStatus(err.message || String(err), 'error');
+      }
     }
 
     $('#addItem').addEventListener('click', () => addItem());
@@ -454,31 +470,22 @@
         btn.textContent = editState.orderId ? 'Memperbarui…' : 'Menyimpan…';
         const payload = await collectPayload();
 
-        google.script.run
-          .withSuccessHandler(res => {
-            btn.disabled = false;
-            btn.textContent = 'Perbarui Data';
-            editState.orderId = res.orderId;
-            editState.editToken = res.editToken;
-            editState.editUrl = res.editUrl;
+        const res = await callApi('saveConfirmation', { payload });
+        btn.disabled = false;
+        btn.textContent = 'Perbarui Data';
+        editState.orderId = res.orderId;
+        editState.editToken = res.editToken;
+        editState.editUrl = res.editUrl;
 
-            $('#resultId').textContent = res.orderId;
-            $('#result').style.display = 'block';
-            $('#editBadge').style.display = 'block';
+        $('#resultId').textContent = res.orderId;
+        $('#result').style.display = 'block';
+        $('#editBadge').style.display = 'block';
 
-            const waText = encodeURIComponent(
-              `Link edit konfirmasi jastip saya:\n${res.editUrl}\n\nMohon jangan bagikan link ini kepada orang lain.`
-            );
-            $('#waLink').href = `https://wa.me/?text=${waText}`;
-            $('#result').scrollIntoView({behavior:'smooth', block:'center'});
-          })
-          .withFailureHandler(err => {
-            btn.disabled = false;
-            btn.textContent = editState.orderId ? 'Perbarui Data' : 'Kirim Konfirmasi';
-            showStatus(err.message || String(err), 'error');
-          })
-          .saveConfirmation(payload);
-
+        const waText = encodeURIComponent(
+          `Link edit konfirmasi jastip saya:\n${res.editUrl}\n\nMohon jangan bagikan link ini kepada orang lain.`
+        );
+        $('#waLink').href = `https://wa.me/?text=${waText}`;
+        $('#result').scrollIntoView({behavior:'smooth', block:'center'});
       }catch(err){
         btn.disabled = false;
         btn.textContent = editState.orderId ? 'Perbarui Data' : 'Kirim Konfirmasi';
@@ -493,7 +500,7 @@
       setTimeout(()=>$('#copyLink').textContent='🔗 Salin Link Edit',1600);
     });
 
-    function init(params){
+    async function init(params){
       // ponytail: read host URL params only, add google.script.history sync when requested
       const shop = (params && params.shop) || '';
       const id = (params && params.id) || '';
@@ -501,10 +508,12 @@
 
       editState.shareCode = shop;
 
-      google.script.run
-        .withSuccessHandler(renderConfig)
-        .withFailureHandler(err => showStatus(err.message || String(err), 'error'))
-        .getPublicConfig(shop, id, token);
+      try{
+        const cfg = await callApi('getPublicConfig', { shareCode: shop, orderId: id, editToken: token });
+        renderConfig(cfg);
+      }catch(err){
+        showStatus(err.message || String(err), 'error');
+      }
 
       if(id && token) loadEditData(id, token);
     }

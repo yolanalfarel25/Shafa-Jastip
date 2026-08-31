@@ -37,6 +37,7 @@ Jangan mengganti isi keputusan lama untuk menyembunyikan perubahan. Buat ADR bar
 | ID | Judul | Status | Tanggal | PLAN ID |
 |---|---|---|---|---|
 | ADR-001 | Workflow approval melalui Act Mode | ACCEPTED | 2026-08-27 | JST-026 |
+| ADR-002 | Frontend GitHub Pages + GAS JSON Web API | ACCEPTED | 2026-08-31 | JST-028 |
 
 ## Template
 

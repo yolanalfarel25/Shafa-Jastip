@@ -14,6 +14,9 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 - Provisioning resource staging backend GAS, inisialisasi sheet database via `setupApp()`, dan deployment Web App staging (`JST-012`).
 - Pengaturan dinamis hingga 10 rekening bank per jastiper dengan fallback data rekening lama (`JST-018`).
 - Tombol hapus dan ganti foto barang buyer sebelum submit (`JST-019`).
+- Frontend statis mandiri GitHub Pages (`index.html`, `login.html`, `dashboard.html`, `.nojekyll`) dengan komunikasi HTTP POST JSON `doPost` ke Google Apps Script backend (`JST-028`).
+- Endpoint backend `doPost(e)` menyediakan JSON Web API dengan allowlist 10 action dan konfigurasi dinamis `FRONTEND_BASE_URL` (`JST-028`).
+- Test suite lokal contract API `tests/jst028_api_contract_check.js` memverifikasi allowlist action, mapping payload, sanitasi, dan ketiadaan scriptlet/RPC GAS pada static Pages (`JST-028`).
 
 ### Security
 

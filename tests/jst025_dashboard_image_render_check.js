@@ -14,10 +14,10 @@ assert.strictEqual(html, deploymentHtml, 'Canonical and deployment templates mus
 const scriptText = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(match => match[1]).join('\n');
 new vm.Script(scriptText, { filename: 'Dashboard.html' });
 
-const loadImgMatch = scriptText.match(/function loadImg\(img\)\{[\s\S]*?\n  \}/);
+const loadImgMatch = scriptText.match(/async function loadImg\(img\)\{[\s\S]*?\n  \}/);
 assert.ok(loadImgMatch, 'loadImg helper exists');
 
-function runScenario(outcome) {
+async function runScenario(outcome) {
   const rpc = {};
   const createdImages = [];
   const sandbox = {
@@ -30,23 +30,11 @@ function runScenario(outcome) {
         return image;
       }
     },
-    google: {
-      script: {
-        run: {
-          withSuccessHandler(handler) {
-            rpc.success = handler;
-            return this;
-          },
-          withFailureHandler(handler) {
-            rpc.failure = handler;
-            return this;
-          },
-          getJastiperImageData(token, url) {
-            rpc.token = token;
-            rpc.url = url;
-          }
-        }
-      }
+    callApi: async (action, request) => {
+      rpc.action = action;
+      rpc.request = request;
+      if (outcome === 'failure') throw new Error('synthetic failure');
+      return 'data:image/png;base64,c3ludGhldGlj';
     }
   };
 
@@ -76,25 +64,29 @@ function runScenario(outcome) {
 
   vm.createContext(sandbox);
   vm.runInContext(`${loadImgMatch[0]}; this.loadImg = loadImg;`, sandbox);
-  sandbox.loadImg(originalImage);
+  await sandbox.loadImg(originalImage);
 
-  assert.strictEqual(container.textContent, 'Memuat…');
-  assert.strictEqual(rpc.token, 'synthetic-session-token');
-  assert.strictEqual(rpc.url, 'synthetic-drive-url');
+  assert.strictEqual(rpc.action, 'getJastiperImageData');
+  assert.strictEqual(rpc.request.sessionToken, 'synthetic-session-token');
+  assert.strictEqual(rpc.request.driveFileUrl, 'synthetic-drive-url');
 
   if (outcome === 'success') {
-    assert.doesNotThrow(() => rpc.success('data:image/png;base64,c3ludGhldGlj'));
     assert.strictEqual(createdImages.length, 1);
     assert.strictEqual(container.child, createdImages[0]);
     assert.strictEqual(container.child.src, 'data:image/png;base64,c3ludGhldGlj');
   } else {
-    assert.doesNotThrow(() => rpc.failure(new Error('synthetic failure')));
     assert.strictEqual(container.textContent, 'Gagal memuat');
     assert.strictEqual(createdImages.length, 0);
   }
 }
 
-runScenario('success');
-runScenario('failure');
+async function main() {
+  await runScenario('success');
+  await runScenario('failure');
+  console.log('JST-025 dashboard image render unit check passed.');
+}
 
-console.log('JST-025 dashboard image render unit check passed.');
+main().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});

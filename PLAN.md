@@ -2274,3 +2274,121 @@ Arahkan deployment staging yang sama kembali ke versi immutable `@13`. Versi bar
 ### Catatan review
 
 Pekerjaan `JST-027` diselesaikan secara mandiri setelah Master memberi approval eksekusi rilis staging. Perubahan remote terbatas pada deployment staging `@14`; tidak ada perubahan source aplikasi, backend, auth, schema, spreadsheet/drive produksi, atau deployment produksi. Agen menunggu konfirmasi pilihan Master untuk tindakan Git selanjutnya.
+
+
+---
+
+## JST-028 — Migrasi Frontend ke GitHub Pages + GAS JSON Web API
+
+- **Status:** `DONE`
+- **Jenis:** `feat`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-31
+- **Approval:** pengguna (Master), 2026-08-31, lewat switch ke Act Mode untuk plan BMAD migrasi frontend ke GitHub Pages.
+
+### Tujuan
+
+Memigrasikan antarmuka web Shafa Jastip ke GitHub Pages sebagai frontend statis mandiri yang berkomunikasi dengan Google Apps Script Web App melalui `fetch` JSON `doPost`, sejalan dengan arsitektur referensi `nadhirafarma/absensi_apotek`.
+
+### Acceptance criteria
+
+- [x] Backend `04_Backend_GAS/Code.gs` menyediakan handler `doPost(e)` yang menerima body JSON `{ action, ...payload }`, memvalidasi action terdaftar, mengeksekusi logika backend yang ada tanpa duplikasi, dan mengembalikan JSON via `ContentService.createTextOutput().setMimeType(ContentService.MimeType.JSON)`.
+- [x] Backend mendukung konfigurasi `FRONTEND_BASE_URL` via `PropertiesService.getScriptProperties()` untuk membangun share link dan edit link menuju origin GitHub Pages, dengan fallback aman ke Web App URL bila properti belum diisi.
+- [x] Handler `doGet(e)` tetap dipertahankan untuk backward compatibility.
+- [x] Seluruh pemanggilan `google.script.run` pada `Login.html`, `Dashboard.html`, dan `Konfirmasi.html` digantikan dengan helper `fetch` standar `method: 'POST'`, `Content-Type: text/plain`, `redirect: 'follow'`, `cache: 'no-store'`.
+- [x] Navigasi top-level pada ketiga halaman frontend disesuaikan menjadi navigasi berbasis path / URL relatif halaman statis tanpa ketergantungan pada iframe sandbox GAS atau `<?= webAppUrl ?>`.
+- [x] Frontend statis dapat diakses melalui root file GitHub Pages (`index.html` mengarah ke Konfirmasi, `login.html`, `dashboard.html`).
+- [x] File `.nojekyll` ditambahkan pada root repository.
+- [x] Semua validasi keamanan, isolasi tenant server-side, rate limiting, validasi rekening bank, dan sanitasi input tetap aktif dan terverifikasi.
+- [x] Test lokal contract API `jst028_api_contract_check.js` dibuat dan lulus.
+
+### Ruang lingkup
+
+- `PLAN.md`
+- `CHANGELOG.md`
+- `04_Backend_GAS/Code.gs`
+- `01_Login_Signup/Login.html`
+- `02_Dashboard_Jastiper/Dashboard.html`
+- `03_Konfirmasi_Pembelian/Konfirmasi.html`
+- `04_Backend_GAS/Login.html`
+- `04_Backend_GAS/Dashboard.html`
+- `04_Backend_GAS/Konfirmasi.html`
+- `index.html`, `login.html`, `dashboard.html`, `.nojekyll`
+- `tests/jst028_api_contract_check.js`
+- `docs/decisions/ADR-002-github-pages-frontend-gas-json-api.md`
+- `docs/decisions/README.md`
+
+### Di luar ruang lingkup
+
+- Penggantian framework frontend (tetap pure HTML/CSS/JS native).
+- Perubahan skema Google Sheets database.
+- Deployment ke akun/resource/spreadsheet produksi.
+- Domain kustom (CNAME).
+
+### Risiko keamanan/data
+
+- Payload browser tidak tepercaya; backend `doPost` wajib memverifikasi action yang diizinkan dan tetap menjalankan `requireSession_` / sanitasi pada semua endpoint terproteksi.
+- Request memakai `Content-Type: text/plain` untuk menghindari CORS preflight; GAS Web App redirect mengeksekusi POST dan mengembalikan JSON.
+- `FRONTEND_BASE_URL` harus tervalidasi agar share URL dan edit URL buyer tidak menghasilkan link rusak.
+
+### Rencana implementasi
+
+1. Tambah `doPost(e)` dispatcher dan helper `jsonResponse_` di `04_Backend_GAS/Code.gs`.
+2. Perbarui `buildShareUrl_` dan `saveConfirmation` untuk memanfaatkan `FRONTEND_BASE_URL`.
+3. Refactor RPC client pada `01_Login_Signup/Login.html` menjadi `fetch` JSON.
+4. Refactor RPC client pada `02_Dashboard_Jastiper/Dashboard.html` menjadi `fetch` JSON.
+5. Refactor RPC client pada `03_Konfirmasi_Pembelian/Konfirmasi.html` menjadi `fetch` JSON.
+6. Buat `index.html`, `login.html`, `dashboard.html` di root, dan `.nojekyll`.
+7. Sinkronkan template `04_Backend_GAS/`.
+8. Buat dan jalankan test contract `tests/jst028_api_contract_check.js`.
+9. Jalankan seluruh suite test lokal, parse JS, dan audit secret.
+
+### Rencana validasi
+
+1. `node tests/jst028_api_contract_check.js`.
+2. `for f in tests/jst*_check.js; do node "$f" || exit 1; done`.
+3. Validasi parser script JS pada seluruh HTML (kanonik, root, dan backend template).
+4. Cek tidak ada sisa `google.script.run` atau `<?= webAppUrl ?>` pada frontend Pages.
+
+### Rencana rollback
+
+Revert modifikasi JST-028 pada branch kerja, hapus file root Pages, pulihkan `Code.gs`, dan redeploy staging ke `@14`.
+
+### Hasil validasi
+
+- [x] Suite test lokal lengkap lulus:
+  - `tests/jst016_resource_config_check.js`
+  - `tests/jst018_multi_rekening_check.js`
+  - `tests/jst019_item_photo_action_check.js`
+  - `tests/jst020_auth_auto_navigation_check.js`
+  - `tests/jst021_confirmation_logo_check.js`
+  - `tests/jst022_dashboard_tabs_check.js`
+  - `tests/jst023_dashboard_save_settings_check.js`
+  - `tests/jst024_confirmation_url_param_check.js`
+  - `tests/jst025_dashboard_image_render_check.js`
+  - `tests/jst028_api_contract_check.js`
+- [x] Parser JavaScript seluruh 9 file HTML (`Login`, `Dashboard`, `Konfirmasi` pada kanonik, GAS, dan root Pages): lulus tanpa error sintaks.
+- [x] Konsistensi byte `cmp -s` antara template kanonik, backend GAS, dan root Pages: identik.
+- [x] Zero sisa pemanggilan `google.script.run` atau `<?= typeof webAppUrl` pada source frontend.
+- [x] Security audit:
+  - Allowlist 10 action tervalidasi pada `doPost(e)`.
+  - Tenant isolation, `requireSession_`, `assertFileInFolder_`, rate limiting tetap server-side.
+  - Sanitasi `escapeHtml` / `textContent` aman dari injeksi XSS.
+  - Zero high-confidence secrets pada diff dan workspace.
+- [x] `git diff --check`: lulus bersih.
+
+### Catatan review
+
+Pekerjaan implementasi migrasi `JST-028` selesai dan diverifikasi mandiri setelah Master menyetujui plan BMAD. Kode frontend kini mandiri tanpa ketergantungan sandbox iframe GAS, siap di-serve via GitHub Pages dan terhubung ke backend JSON Web API GAS.
+
+### Bukti deployment staging
+
+- [x] `npx @google/clasp push`: 5 file GAS terlacak (`appsscript.json`, `Code.gs`, `Dashboard.html`, `Konfirmasi.html`, `Login.html`) berhasil diunggah.
+- [x] Versi immutable `@16` dibuat dengan deskripsi `JST-028 GitHub Pages JSON API staging hardened 2026-08-31`.
+- [x] Target deployment staging aktif `AKfycbwAKQv0i7cYNZatxUpKjbAqs9ALq_kMmkj0EM6v_nuzkf44Sp0l_VGU2PfxLnBEm7g` diperbarui ke `@16`; deployment `@HEAD` tidak diubah.
+- [x] Smoke test HTTP staging live:
+  - `doGet` Konfirmasi root merespons HTTP 200 dengan payload tanpa `google.script.run`.
+  - `doPost` action tidak dikenal merespons HTTP 200 dengan payload JSON `{ ok: false, error: 'Aksi API tidak valid: ...' }`.
+  - `doPost` action valid `getPublicConfig` merespons JSON `{ ok: false, error: 'Link jastip tidak aktif.' }` untuk kode sintetis.
+  - Probe CORS merespons `Access-Control-Allow-Origin: *` dan `Content-Type: application/json; charset=utf-8`.
+- [ ] Rollback staging (jika diperlukan): redeploy deployment staging yang sama ke versi immutable `@14`.

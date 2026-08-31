@@ -29,10 +29,10 @@ function functionBlock(source, signature) {
 
 const busy = functionBlock(canonical, 'function busy(');
 const collect = functionBlock(canonical, 'function collectBankAccounts(');
-const handler = canonical.match(/\$\('#saveSettings'\)\.onclick=\(\)=>\{[\s\S]*?\n  \};/);
+const handler = canonical.match(/\$\('#saveSettings'\)\.onclick=async\(\)=>\{[\s\S]*?\n  \};/);
 assert.ok(handler, 'saveSettings handler missing');
 
-function setup(accounts) {
+function setup(accounts, result) {
   const button = { disabled: false, textContent: 'Simpan Pengaturan', onclick: null };
   const fields = {
     '#saveSettings': button,
@@ -43,8 +43,6 @@ function setup(accounts) {
   };
   const alerts = [];
   const calls = [];
-  let success;
-  let failure;
   const context = {
     document: {
       querySelector: selector => fields[selector],
@@ -59,53 +57,58 @@ function setup(accounts) {
     showApp: () => {},
     localStorage: { removeItem: () => {} },
     navigatePage: () => {},
-    google: { script: { run: {
-      withSuccessHandler(fn) { success = fn; return this; },
-      withFailureHandler(fn) { failure = fn; return this; },
-      updateJastiperSettings(token, payload) { calls.push({ token, payload }); }
-    } } }
+    callApi: async (action, request) => {
+      calls.push({ action, request });
+      if (result instanceof Error) throw result;
+      return result;
+    }
   };
   context.$ = selector => context.document.querySelector(selector);
   vm.runInNewContext(`${busy}\n${collect}\n${handler[0]}`, context);
-  return { button, alerts, calls, context, success: value => success(value), failure: error => failure(error) };
+  return { button, alerts, calls };
 }
 
-{
-  const test = setup([{ bankName: 'BCA', accountNumber: '', accountHolder: 'Pemilik Sintetis' }]);
-  test.button.onclick();
-  assert.strictEqual(test.calls.length, 0, 'Incomplete account must block request');
-  assert.match(test.alerts[0], /wajib diisi/);
-  assert.strictEqual(test.button.disabled, false);
+async function main() {
+  {
+    const test = setup([{ bankName: 'BCA', accountNumber: '', accountHolder: 'Pemilik Sintetis' }]);
+    await test.button.onclick();
+    assert.strictEqual(test.calls.length, 0, 'Incomplete account must block request');
+    assert.match(test.alerts[0], /wajib diisi/);
+    assert.strictEqual(test.button.disabled, false);
+  }
+
+  {
+    const test = setup([{ bankName: 'BCA', accountNumber: '123', accountHolder: 'Pemilik Sintetis' }]);
+    await test.button.onclick();
+    assert.strictEqual(test.calls.length, 0, 'Short account number must block request');
+    assert.match(test.alerts[0], /minimal 4 digit/);
+  }
+
+  {
+    const response = { profile: { namaJastip: 'Toko Sintetis' }, shareUrl: 'https://example.test/synthetic' };
+    const test = setup([{ bankName: 'BRI', accountNumber: '208901001614501', accountHolder: 'Pemilik Sintetis' }], response);
+    await test.button.onclick();
+    assert.strictEqual(test.calls.length, 1, 'Valid click must call backend once');
+    assert.strictEqual(test.calls[0].action, 'updateJastiperSettings');
+    assert.strictEqual(test.calls[0].request.sessionToken, 'synthetic-session');
+    assert.strictEqual(test.calls[0].request.payload.bankAccounts[0].bankName, 'BRI');
+    assert.strictEqual(test.button.disabled, false);
+    assert.strictEqual(test.button.textContent, 'Simpan Pengaturan');
+    assert.strictEqual(test.alerts.includes('Pengaturan tersimpan.'), true);
+  }
+
+  {
+    const test = setup([{ bankName: 'BSI', accountNumber: '7123456789', accountHolder: 'Pemilik Sintetis' }], new Error('Kegagalan sintetis'));
+    await test.button.onclick();
+    assert.strictEqual(test.button.disabled, false);
+    assert.strictEqual(test.button.textContent, 'Simpan Pengaturan');
+    assert.strictEqual(test.alerts.includes('Kegagalan sintetis'), true);
+  }
+
+  console.log('JST-023 dashboard save settings check passed.');
 }
 
-{
-  const test = setup([{ bankName: 'BCA', accountNumber: '123', accountHolder: 'Pemilik Sintetis' }]);
-  test.button.onclick();
-  assert.strictEqual(test.calls.length, 0, 'Short account number must block request');
-  assert.match(test.alerts[0], /minimal 4 digit/);
-}
-
-{
-  const test = setup([{ bankName: 'BRI', accountNumber: '208901001614501', accountHolder: 'Pemilik Sintetis' }]);
-  test.button.onclick();
-  assert.strictEqual(test.calls.length, 1, 'Valid click must call backend once');
-  assert.strictEqual(test.calls[0].token, 'synthetic-session');
-  assert.strictEqual(test.calls[0].payload.bankAccounts[0].bankName, 'BRI');
-  assert.strictEqual(test.button.disabled, true);
-  assert.strictEqual(test.button.textContent, 'Menyimpan…');
-  test.success({ profile: { namaJastip: 'Toko Sintetis' }, shareUrl: 'https://example.test/synthetic' });
-  assert.strictEqual(test.button.disabled, false);
-  assert.strictEqual(test.button.textContent, 'Simpan Pengaturan');
-  assert.strictEqual(test.alerts.includes('Pengaturan tersimpan.'), true);
-}
-
-{
-  const test = setup([{ bankName: 'BSI', accountNumber: '7123456789', accountHolder: 'Pemilik Sintetis' }]);
-  test.button.onclick();
-  test.failure(new Error('Kegagalan sintetis'));
-  assert.strictEqual(test.button.disabled, false);
-  assert.strictEqual(test.button.textContent, 'Simpan Pengaturan');
-  assert.strictEqual(test.alerts.includes('Kegagalan sintetis'), true);
-}
-
-console.log('JST-023 dashboard save settings check passed.');
+main().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});
