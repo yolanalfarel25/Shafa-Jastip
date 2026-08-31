@@ -2392,3 +2392,71 @@ Pekerjaan implementasi migrasi `JST-028` selesai dan diverifikasi mandiri setela
   - `doPost` action valid `getPublicConfig` merespons JSON `{ ok: false, error: 'Link jastip tidak aktif.' }` untuk kode sintetis.
   - Probe CORS merespons `Access-Control-Allow-Origin: *` dan `Content-Type: application/json; charset=utf-8`.
 - [ ] Rollback staging (jika diperlukan): redeploy deployment staging yang sama ke versi immutable `@14`.
+
+
+---
+
+## JST-029 — Ingat Konfirmasi Buyer pada Browser
+
+- **Status:** `DONE`
+- **Jenis:** `feat`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-31
+- **Approval:** pengguna (Master), 2026-08-31, lewat switch ke Act Mode dan approval eskalasi penambahan mirror GAS buyer ke scope.
+
+### Tujuan
+
+Mengarahkan link buyer ke frontend GitHub Pages dan mengingat satu konfirmasi aktif per browser serta `shareCode`, sehingga buyer dapat membuka kembali link jastiper pada browser sama untuk memuat dan memperbarui data sebelumnya.
+
+### Acceptance criteria
+
+- [x] Kredensial edit `orderId`, `editToken`, dan `editUrl` disimpan setelah konfirmasi berhasil, dipisah per `shareCode`.
+- [x] Pembukaan ulang `?shop=...` pada browser sama memuat data sebelumnya dalam mode edit.
+- [x] Parameter eksplisit `?id=...&token=...` selalu lebih diprioritaskan daripada data browser.
+- [x] Kredensial browser yang ditolak server karena order hilang atau token invalid dihapus tanpa melemahkan verifikasi token server-side; error jaringan tidak menghapus cache.
+- [x] Buyer dapat melupakan akses edit tersimpan pada perangkat bersama.
+- [x] Template buyer terkait (`index.html`, `03_Konfirmasi_Pembelian/Konfirmasi.html`, `04_Backend_GAS/Konfirmasi.html`) tetap sinkron dan test lokal lulus.
+- [x] Konfigurasi runtime `FRONTEND_BASE_URL` tetap menjadi langkah operator terpisah; task ini tidak mengubah deployment atau Script Properties.
+
+### Ruang lingkup
+
+- `index.html`
+- `03_Konfirmasi_Pembelian/Konfirmasi.html`
+- `04_Backend_GAS/Konfirmasi.html`
+- `tests/jst024_confirmation_url_param_check.js`
+- `tests/jst029_buyer_device_edit_check.js`
+- `PLAN.md`
+- `CHANGELOG.md`
+
+### Gate eskalasi
+
+- Penambahan `04_Backend_GAS/Konfirmasi.html` telah disetujui Master untuk menjaga konsistensi template kanonik dan mirror GAS tanpa deploy.
+- Tidak ada perubahan backend `Code.gs`, deployment, atau Script Properties.
+
+### Risiko keamanan/data
+
+- `editToken` memberi hak memperbarui data buyer; penyimpanan browser hanya cocok untuk perangkat pribadi atau browser profile terpisah.
+- Pengguna lain pada browser profile sama dapat membuka data tersimpan. UI wajib memberi peringatan dan tindakan melupakan perangkat.
+- PII buyer tidak disimpan di browser; backend tetap memverifikasi hash token untuk setiap baca dan tulis.
+- Token tidak boleh dicetak ke log, test fixture, `PLAN.md`, atau `CHANGELOG.md`.
+
+### Rencana rollback
+
+Revert hanya perubahan `JST-029` pada branch kerja. Jangan menghapus data browser atau mengubah resource produksi melalui rollback repository.
+
+### Hasil validasi
+
+- [x] Test unit mandiri `tests/jst029_buyer_device_edit_check.js`: lulus (key storage `jastip-order-{shareCode}`, isolasi antartoko, prioritas URL dibanding storage, pemulihan URL setelah sanitasi, pembersihan cache saat token ditolak, ketahanan cache saat transient error, dan integrasi tombol lupakan perangkat).
+- [x] Suite test lokal lengkap (11 test: `JST-016`, `JST-018`, `JST-019`, `JST-020`, `JST-021`, `JST-022`, `JST-023`, `JST-024`, `JST-025`, `JST-028`, `JST-029`): seluruhnya lulus tanpa regresi.
+- [x] Validasi parser JavaScript: seluruh script pada 9 file HTML (`Login`, `Dashboard`, `Konfirmasi` pada kanonik, GAS mirror, dan root Pages) ter-parse bersih tanpa error sintaks.
+- [x] Konsistensi template triple: `03_Konfirmasi_Pembelian/Konfirmasi.html`, `04_Backend_GAS/Konfirmasi.html`, dan `index.html` terbukti byte-identical.
+- [x] Audit keamanan dan privasi:
+  - Zero PII buyer (nama, alamat, no HP, foto) disimpan pada `localStorage`.
+  - Otorisasi edit tetap 100% server-side via SHA-256 token hash di backend GAS.
+  - Parameter URL `id` dan `token` disanitasi dari history address bar setelah pemuatan berhasil.
+  - Zero high-confidence hardcoded secrets pada diff.
+- [x] `git diff --check`: lulus bersih.
+
+### Catatan review
+
+Implementasi persistensi status edit buyer diselesaikan secara mandiri di branch kerja setelah Master menyetujui plan BMAD dan eskalasi sinkronisasi mirror GAS. Kredensial edit lokal kini memungkinkan buyer pada perangkat yang sama memperbarui data yang telah dikirim hanya dengan membuka kembali link jastiper. Task tidak menyentuh database produksi, deployment staging/produksi, atau Script Properties. Operator dapat secara terpisah memasukkan Script Property `FRONTEND_BASE_URL` pada GAS Settings bila ingin link edit WA/clipboard diarahkan ke origin Pages.

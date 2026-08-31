@@ -6,6 +6,10 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 
 ### Added
 
+- Persistensi status edit buyer pada `localStorage` browser per `shareCode` toko (`jastip-order-{shareCode}`) yang memuat kembali pesanan sebelumnya saat membuka tautan toko tanpa token (`JST-029`).
+- Tombol “Lupakan di Perangkat Ini” pada formulir konfirmasi buyer untuk membersihkan akses edit tersimpan pada perangkat bersama (`JST-029`).
+- Sanitasi URL browser pada formulir konfirmasi buyer setelah token edit divalidasi via `history.replaceState` (`JST-029`).
+- Test suite lokal `tests/jst029_buyer_device_edit_check.js` memverifikasi prioritas URL, persistensi, isolasi antartoko, dan penghapusan token tidak valid (`JST-029`).
 - Dokumen governance, BMAD, konteks brownfield, keamanan, agenda, dan ADR untuk baseline prabuild (`JST-001`).
 - Identitas visual “Jastip Apps” dan aset logo pada antarmuka (`JST-002`).
 - Panduan prompt operasional agen untuk memulai, melanjutkan, dan memulihkan pekerjaan (`JST-009`).
