@@ -29,6 +29,7 @@ function functionBlock(source, signature) {
 
 const busy = functionBlock(canonical, 'function busy(');
 const collect = functionBlock(canonical, 'function collectBankAccounts(');
+const collectEkspedisi = functionBlock(canonical, 'function collectEkspedisiList(');
 const handler = canonical.match(/\$\('#saveSettings'\)\.onclick=async\(\)=>\{[\s\S]*?\n  \};/);
 assert.ok(handler, 'saveSettings handler missing');
 
@@ -46,11 +47,19 @@ function setup(accounts, result) {
   const context = {
     document: {
       querySelector: selector => fields[selector],
-      querySelectorAll: selector => selector === '#bankList>div' ? accounts.map(account => ({
-        querySelector: child => ({
-          value: child === '.bank-name' ? account.bankName : child === '.bank-number' ? account.accountNumber : account.accountHolder
-        })
-      })) : []
+      querySelectorAll: selector => {
+        if (selector === '#bankList>div') {
+          return accounts.map(account => ({
+            querySelector: child => ({
+              value: child === '.bank-name' ? account.bankName : child === '.bank-number' ? account.accountNumber : account.accountHolder
+            })
+          }));
+        }
+        if (selector === '#ekspedisiList>div') {
+          return [{ querySelector: () => ({ value: 'Shopee' }) }, { querySelector: () => ({ value: 'J&T' }) }];
+        }
+        return [];
+      }
     },
     state: { sessionToken: 'synthetic-session', profile: null, shareUrl: '' },
     alert: message => alerts.push(String(message)),
@@ -64,7 +73,7 @@ function setup(accounts, result) {
     }
   };
   context.$ = selector => context.document.querySelector(selector);
-  vm.runInNewContext(`${busy}\n${collect}\n${handler[0]}`, context);
+  vm.runInNewContext(`${busy}\n${collect}\n${collectEkspedisi}\n${handler[0]}`, context);
   return { button, alerts, calls };
 }
 
@@ -92,6 +101,7 @@ async function main() {
     assert.strictEqual(test.calls[0].action, 'updateJastiperSettings');
     assert.strictEqual(test.calls[0].request.sessionToken, 'synthetic-session');
     assert.strictEqual(test.calls[0].request.payload.bankAccounts[0].bankName, 'BRI');
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(test.calls[0].request.payload.ekspedisiList)), ['Shopee', 'J&T']);
     assert.strictEqual(test.button.disabled, false);
     assert.strictEqual(test.button.textContent, 'Simpan Pengaturan');
     assert.strictEqual(test.alerts.includes('Pengaturan tersimpan.'), true);

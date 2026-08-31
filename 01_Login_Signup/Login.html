@@ -149,7 +149,8 @@
     }
 
     function navigatePage(page) {
-      window.location.replace(page==='dashboard'?'dashboard.html':'login.html');
+      const route=page==='dashboard'?'dashboard':'login';
+      window.location.replace(window.location.hostname==='jastipin.my.id'?`/${route}`:`${route}.html`);
     }
 
     const savedSession=localStorage.getItem('jastipSession');

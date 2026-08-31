@@ -5,6 +5,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Konfirmasi Pembelian | Jastip Apps</title>
+  <script>
+    (function redirectEmptyRoot() {
+      if (window.location.pathname === '/' && !window.location.search) {
+        window.location.replace('/login');
+      }
+    })();
+  </script>
   <style>
     :root{
       --bg:#fff8fb; --card:#ffffff; --text:#28212a; --muted:#756c77;
@@ -143,15 +150,10 @@
 
       <section class="section">
         <h2 class="section-title">🚚 Pilih Ekspedisi</h2>
-        <div class="ship-options">
-          <div class="choice">
-            <input type="radio" name="ekspedisi" value="Shopee" id="shipShopee" required>
-            <label for="shipShopee"><span class="icon">🛍️</span><span><b>Shopee</b><br><small>Shopee Express / checkout</small></span></label>
-          </div>
-          <div class="choice">
-            <input type="radio" name="ekspedisi" value="J&T" id="shipJnt">
-            <label for="shipJnt"><span class="icon">📦</span><span><b>J&T</b><br><small>Pengiriman langsung</small></span></label>
-          </div>
+        <div id="shipOptions" class="ship-options"></div>
+        <div id="otherShipWrap" style="display:none;margin-top:12px">
+          <label for="ekspedisiManual">Nama Ekspedisi Lainnya <span class="req">*</span></label>
+          <input id="ekspedisiManual" maxlength="60" placeholder="Tuliskan nama ekspedisi / kurir pengiriman">
         </div>
       </section>
 
@@ -216,6 +218,7 @@
 
     let appConfig = null;
     let pendingBankValue = '';
+    let pendingShipValue = '';
     let editState = { orderId:'', editToken:'', editUrl:'', shareCode:'' };
     const $ = s => document.querySelector(s);
 
@@ -401,7 +404,13 @@
         });
       }
 
-      const ekspedisi = document.querySelector('input[name="ekspedisi"]:checked')?.value || '';
+      const selectedShip = document.querySelector('input[name="ekspedisi"]:checked')?.value || '';
+      let ekspedisi = selectedShip;
+      if (selectedShip === '__OTHER__') {
+        ekspedisi = $('#ekspedisiManual').value.trim();
+        if (!ekspedisi) throw new Error('Nama ekspedisi lainnya wajib diisi.');
+      }
+
       const bankTujuan = document.querySelector('input[name="bankTujuan"]:checked')?.value || '';
 
       return {
@@ -418,10 +427,69 @@
       };
     }
 
+    function renderShipOptions(rawList){
+      const container = $('#shipOptions');
+      container.replaceChildren();
+      const list = Array.isArray(rawList) && rawList.length ? rawList : ['Shopee', 'J&T'];
+
+      [...list, '__OTHER__'].forEach((name, i) => {
+        const other = name === '__OTHER__';
+        const choice = document.createElement('div');
+        choice.className = 'choice';
+
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'ekspedisi';
+        radio.id = `ship_${i}`;
+        radio.value = name;
+        if (i === 0) radio.required = true;
+
+        const label = document.createElement('label');
+        label.htmlFor = radio.id;
+        const icon = document.createElement('span');
+        icon.className = 'icon';
+        icon.textContent = other ? '✍️' : '📦';
+        const text = document.createElement('span');
+        const title = document.createElement('b');
+        title.textContent = other ? 'Lainnya' : name;
+        const detail = document.createElement('small');
+        detail.textContent = other ? 'Isi nama ekspedisi manual' : 'Pilihan jastiper';
+        text.appendChild(title);
+        text.appendChild(document.createElement('br'));
+        text.appendChild(detail);
+        label.appendChild(icon);
+        label.appendChild(text);
+        radio.addEventListener('change', toggleOtherShip);
+        choice.appendChild(radio);
+        choice.appendChild(label);
+        container.appendChild(choice);
+      });
+      if (pendingShipValue) selectShip(pendingShipValue);
+    }
+
+    function toggleOtherShip(){
+      const other = document.querySelector('input[name="ekspedisi"]:checked')?.value === '__OTHER__';
+      $('#otherShipWrap').style.display = other ? 'block' : 'none';
+      $('#ekspedisiManual').required = other;
+      if (!other) $('#ekspedisiManual').value = '';
+    }
+
+    function selectShip(value){
+      if (!value) return;
+      const radios = [...document.querySelectorAll('input[name="ekspedisi"]')];
+      const match = radios.find(r => r.value === value);
+      const selected = match || radios.find(r => r.value === '__OTHER__');
+      if (!selected) return;
+      selected.checked = true;
+      if (!match) $('#ekspedisiManual').value = value;
+      toggleOtherShip();
+    }
+
     function renderConfig(cfg){
       appConfig = cfg;
       editState.shareCode = cfg.jastiper?.shareCode || editState.shareCode;
       $('#shopBadge').textContent = cfg.jastiper?.namaJastip ? `Form milik ${cfg.jastiper.namaJastip}` : '';
+      renderShipOptions(cfg.ekspedisiList);
 
       const container = $('#bankOptions');
       container.replaceChildren();
@@ -501,8 +569,8 @@
         $('#alamat').value = data.alamat || '';
         $('#noHp').value = data.noHp || '';
 
-        const ship = document.querySelector(`input[name="ekspedisi"][value="${CSS.escape(data.ekspedisi || '')}"]`);
-        if(ship) ship.checked = true;
+        pendingShipValue = data.ekspedisi || '';
+        selectShip(pendingShipValue);
         pendingBankValue = data.bankTujuan || '';
         selectBank(pendingBankValue);
 
@@ -550,8 +618,11 @@
       $('#buktiTransfer').value = '';
       $('#existingProof').innerHTML = '';
       pendingBankValue = '';
+      pendingShipValue = '';
       const checkedShip = document.querySelector('input[name="ekspedisi"]:checked');
       if(checkedShip) checkedShip.checked = false;
+      $('#ekspedisiManual').value = '';
+      toggleOtherShip();
       const checkedBank = document.querySelector('input[name="bankTujuan"]:checked');
       if(checkedBank) checkedBank.checked = false;
       $('#items').innerHTML = '';
@@ -630,6 +701,7 @@
     }
 
     function boot(){
+      if(location.pathname === '/' && !location.search) return;
       addItem();
 
       if(typeof google !== 'undefined' && google.script && google.script.url && typeof google.script.url.getLocation === 'function'){
