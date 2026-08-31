@@ -6,6 +6,8 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 
 ### Added
 
+- Lightbox aksesibel untuk memperbesar foto barang dan bukti transfer pada Dashboard melalui klik atau keyboard, dengan caption, backdrop, `Escape`, focus trap, dan focus return (`JST-030`).
+- Test suite lokal `tests/jst030_photo_lightbox_check.js` memverifikasi modal, interaksi keyboard, fokus, renderer foto, dan sinkronisasi tiga mirror Dashboard (`JST-030`).
 - Persistensi status edit buyer pada `localStorage` browser per `shareCode` toko (`jastip-order-{shareCode}`) yang memuat kembali pesanan sebelumnya saat membuka tautan toko tanpa token (`JST-029`).
 - Tombol “Lupakan di Perangkat Ini” pada formulir konfirmasi buyer untuk membersihkan akses edit tersimpan pada perangkat bersama (`JST-029`).
 - Sanitasi URL browser pada formulir konfirmasi buyer setelah token edit divalidasi via `history.replaceState` (`JST-029`).

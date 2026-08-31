@@ -2460,3 +2460,59 @@ Revert hanya perubahan `JST-029` pada branch kerja. Jangan menghapus data browse
 ### Catatan review
 
 Implementasi persistensi status edit buyer diselesaikan secara mandiri di branch kerja setelah Master menyetujui plan BMAD dan eskalasi sinkronisasi mirror GAS. Kredensial edit lokal kini memungkinkan buyer pada perangkat yang sama memperbarui data yang telah dikirim hanya dengan membuka kembali link jastiper. Task tidak menyentuh database produksi, deployment staging/produksi, atau Script Properties. Operator dapat secara terpisah memasukkan Script Property `FRONTEND_BASE_URL` pada GAS Settings bila ingin link edit WA/clipboard diarahkan ke origin Pages.
+
+
+---
+
+## JST-030 — Preview Foto Dashboard
+
+- **Status:** `DONE`
+- **Jenis:** `feat`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-31
+- **Approval:** pengguna (Master), 2026-08-31, lewat switch ke Act Mode.
+
+### Tujuan
+
+Memungkinkan jastiper memperbesar foto barang dan bukti transfer customer langsung dari Dashboard untuk pemeriksaan detail tanpa membuka Drive.
+
+### Acceptance criteria
+
+- [x] Foto yang selesai dimuat dapat membuka preview fullscreen melalui klik, `Enter`, atau `Space`.
+- [x] Modal dapat ditutup lewat tombol, backdrop, atau `Escape`.
+- [x] Modal memakai `role="dialog"`, `aria-modal`, caption, alt text, focus trap, dan mengembalikan fokus ke thumbnail pembuka.
+- [x] Foto yang masih memuat atau gagal tidak membuka modal.
+- [x] Layout gambar responsif dan tiga mirror Dashboard byte-identical.
+- [x] Test lokal mandiri dan suite regresi lulus.
+
+### Ruang lingkup
+
+- `02_Dashboard_Jastiper/Dashboard.html`
+- `04_Backend_GAS/Dashboard.html`
+- `dashboard.html`
+- `tests/jst030_photo_lightbox_check.js`
+- `PLAN.md`
+- `CHANGELOG.md`
+
+### Risiko keamanan/data
+
+- URL Drive tetap divalidasi dan dimuat lewat action backend `getJastiperImageData`; modal hanya memakai data URI yang sudah diterima Dashboard.
+- Task tidak mengubah auth, sesi, token, permission Drive, backend, Script Properties, atau data produksi.
+- Caption dirender dengan `textContent`; label thumbnail tetap melalui helper `esc`.
+
+### Rencana rollback
+
+Revert hanya perubahan `JST-030` pada tiga mirror Dashboard, test JST-030, dan entri dokumentasi. Tidak ada data atau resource produksi yang perlu diubah.
+
+### Hasil validasi
+
+- [x] `node tests/jst030_photo_lightbox_check.js`: lulus (mirror, markup dialog, parser, klik, keyboard, backdrop, caption, focus trap, dan focus return).
+- [x] `node tests/jst025_dashboard_image_render_check.js`: lulus tanpa regresi renderer foto.
+- [x] Suite test lokal lengkap (12 test: `JST-016`, `JST-018`, `JST-019`, `JST-020`, `JST-021`, `JST-022`, `JST-023`, `JST-024`, `JST-025`, `JST-028`, `JST-029`, `JST-030`): seluruhnya lulus.
+- [x] Parser JavaScript tiga Dashboard: lulus.
+- [x] Konsistensi template triple: hash SHA-256 sama `7e4820aba527d5d45bb3ba020f221d6544fe6e2db5dced6e229b597927fb0da9`.
+- [x] `git diff --check`: lulus bersih.
+
+### Catatan review
+
+Preview memakai lightbox native HTML/CSS/JS tanpa dependency. Swipe, galeri antar-foto, download, dan pinch-to-zoom tidak ditambahkan karena di luar scope. Belum ada deployment produksi atau staging.
