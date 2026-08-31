@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Mengarahkan… | Jastip Apps</title>
+  <script>
+    (function() {
+      // ponytail: GitHub Pages SPA redirect, upgrade to router when multi-page dynamic routes added
+      var p = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+      if (p.endsWith('/dashboard') || p.endsWith('/dashboard.html')) {
+        window.location.replace('/dashboard.html');
+        return;
+      }
+      if (p.endsWith('/login') || p.endsWith('/login.html')) {
+        window.location.replace('/login.html');
+        return;
+      }
+      window.location.replace('/login');
+    })();
+  </script>
+</head>
+<body>
+  <p>Mengarahkan ke <a href="/login">halaman login</a>…</p>
+</body>
+</html>

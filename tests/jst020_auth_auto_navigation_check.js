@@ -22,13 +22,13 @@ assert.ok(script, 'Code.gs syntax check OK');
 // 3. Check automatic static navigation
 assert.ok(loginHtml.includes('API_URL'), 'Login.html has API_URL endpoint configuration');
 assert.ok(loginHtml.includes('function navigatePage(page)'), 'Login.html has navigatePage');
-assert.ok(loginHtml.includes("window.location.replace(page==='dashboard'?'dashboard.html':'login.html')"), 'Login.html navigates to static pages');
+assert.ok(loginHtml.includes("window.location.hostname==='jastipin.my.id'?`/${route}`:`${route}.html`"), 'Login.html uses clean custom-domain routes with GAS fallback');
 assert.ok(loginHtml.includes("navigatePage('dashboard')"), 'Login.html automatically navigates to dashboard on auth');
 assert.ok(!loginHtml.includes('id="navManualLink"'), 'Login.html has no manual link button');
 
 assert.ok(dashboardHtml.includes('API_URL'), 'Dashboard.html has API_URL endpoint configuration');
 assert.ok(dashboardHtml.includes('function navigatePage(page)'), 'Dashboard.html has navigatePage');
-assert.ok(dashboardHtml.includes("window.location.replace(page==='dashboard'?'dashboard.html':'login.html')"), 'Dashboard.html navigates to static pages');
+assert.ok(dashboardHtml.includes("window.location.hostname==='jastipin.my.id'?`/${route}`:`${route}.html`"), 'Dashboard.html uses clean custom-domain routes with GAS fallback');
 assert.ok(dashboardHtml.includes("navigatePage('login')"), 'Dashboard.html navigates to login on logout/session expiry');
 assert.ok(!dashboardHtml.includes('id="navManualLink"'), 'Dashboard.html has no manual link button');
 

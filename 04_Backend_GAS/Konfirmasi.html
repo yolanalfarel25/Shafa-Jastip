@@ -5,6 +5,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Konfirmasi Pembelian | Jastip Apps</title>
+  <script>
+    (function redirectEmptyRoot() {
+      if (window.location.pathname === '/' && !window.location.search) {
+        window.location.replace('/login');
+      }
+    })();
+  </script>
   <style>
     :root{
       --bg:#fff8fb; --card:#ffffff; --text:#28212a; --muted:#756c77;
@@ -30,7 +37,12 @@
     .hero p{margin:0;color:var(--muted);line-height:1.5}
     .edit-badge{
       display:none;margin:0 0 14px;padding:11px 14px;border-radius:14px;
-      background:#eefbf5;color:var(--success);font-weight:700;border:1px solid #c7eddd
+      background:#eefbf5;color:var(--success);font-weight:700;border:1px solid #c7eddd;
+      align-items:center;justify-content:space-between;gap:10px
+    }
+    .edit-badge button{
+      border:1px solid #9ed9c0;background:#fff;color:#245644;border-radius:10px;
+      padding:7px 10px;font:inherit;font-size:12px;font-weight:800;cursor:pointer
     }
     .card{background:rgba(255,255,255,.94);border:1px solid rgba(234,223,229,.9);border-radius:24px;box-shadow:var(--shadow);overflow:hidden}
     .section{padding:24px;border-bottom:1px solid var(--line)}
@@ -112,7 +124,10 @@
       </div>
     </header>
 
-    <div id="editBadge" class="edit-badge">✏️ Mode edit aktif — data lama berhasil dimuat.</div>
+    <div id="editBadge" class="edit-badge">
+      <span id="editBadgeText">✏️ Mode edit aktif — data lama berhasil dimuat.</span>
+      <button type="button" id="forgetDevice">Lupakan di Perangkat Ini</button>
+    </div>
 
     <form id="form" class="card">
       <section class="section">
@@ -135,15 +150,10 @@
 
       <section class="section">
         <h2 class="section-title">🚚 Pilih Ekspedisi</h2>
-        <div class="ship-options">
-          <div class="choice">
-            <input type="radio" name="ekspedisi" value="Shopee" id="shipShopee" required>
-            <label for="shipShopee"><span class="icon">🛍️</span><span><b>Shopee</b><br><small>Shopee Express / checkout</small></span></label>
-          </div>
-          <div class="choice">
-            <input type="radio" name="ekspedisi" value="J&T" id="shipJnt">
-            <label for="shipJnt"><span class="icon">📦</span><span><b>J&T</b><br><small>Pengiriman langsung</small></span></label>
-          </div>
+        <div id="shipOptions" class="ship-options"></div>
+        <div id="otherShipWrap" style="display:none;margin-top:12px">
+          <label for="ekspedisiManual">Nama Ekspedisi Lainnya <span class="req">*</span></label>
+          <input id="ekspedisiManual" maxlength="60" placeholder="Tuliskan nama ekspedisi / kurir pengiriman">
         </div>
       </section>
 
@@ -182,7 +192,7 @@
       </section>
     </form>
 
-    <p class="footer-note">Jangan bagikan link edit kepada orang lain karena pemilik link dapat membuka dan memperbarui data konfirmasi Anda.</p>
+    <p class="footer-note">Jangan bagikan link edit kepada orang lain. Pada perangkat bersama, pilih “Lupakan di Perangkat Ini” setelah selesai.</p>
   </main>
 
   <script>
@@ -198,14 +208,62 @@
       });
       if(!response.ok)throw new Error(`Gagal menghubungi server (${response.status}).`);
       const data=await response.json();
-      if(!data||data.ok===false||data.error)throw new Error(data?.error||'Respons server tidak valid.');
+      if(!data||data.ok===false||data.error){
+        const error=new Error(data?.error||'Respons server tidak valid.');
+        error.credentialRejected = error.message === 'Data tidak ditemukan.' || error.message === 'Token edit tidak valid.';
+        throw error;
+      }
       return data;
     }
 
     let appConfig = null;
     let pendingBankValue = '';
+    let pendingShipValue = '';
     let editState = { orderId:'', editToken:'', editUrl:'', shareCode:'' };
     const $ = s => document.querySelector(s);
+
+    function getDeviceOrderStorageKey(shareCode){
+      const code = String(shareCode || '').trim().slice(0, 80);
+      return code ? `jastip-order-${encodeURIComponent(code)}` : '';
+    }
+
+    function saveDeviceOrder(shareCode, orderId, editToken, editUrl = ''){
+      const key = getDeviceOrderStorageKey(shareCode);
+      const saved = {
+        orderId: String(orderId || '').trim().slice(0, 80),
+        editToken: String(editToken || '').trim().slice(0, 200),
+        editUrl: String(editUrl || '').trim().slice(0, 1000)
+      };
+      if(!key || !saved.orderId || !saved.editToken) return;
+      try{ localStorage.setItem(key, JSON.stringify(saved)); }catch(_err){}
+    }
+
+    function getSavedDeviceOrder(shareCode){
+      const key = getDeviceOrderStorageKey(shareCode);
+      if(!key) return null;
+      try{
+        const saved = JSON.parse(localStorage.getItem(key) || 'null');
+        const orderId = String(saved?.orderId || '').trim().slice(0, 80);
+        const editToken = String(saved?.editToken || '').trim().slice(0, 200);
+        const editUrl = String(saved?.editUrl || '').trim().slice(0, 1000);
+        if(orderId && editToken) return { orderId, editToken, editUrl };
+        localStorage.removeItem(key);
+      }catch(_err){
+        try{ localStorage.removeItem(key); }catch(_ignored){}
+      }
+      return null;
+    }
+
+    function clearSavedDeviceOrder(shareCode){
+      const key = getDeviceOrderStorageKey(shareCode);
+      if(!key) return;
+      try{ localStorage.removeItem(key); }catch(_err){}
+    }
+
+    function showEditBadge(message){
+      $('#editBadgeText').textContent = message || '✏️ Mode edit aktif — data lama berhasil dimuat.';
+      $('#editBadge').style.display = 'flex';
+    }
 
     function showStatus(message, type='info'){
       const el = $('#status');
@@ -346,7 +404,13 @@
         });
       }
 
-      const ekspedisi = document.querySelector('input[name="ekspedisi"]:checked')?.value || '';
+      const selectedShip = document.querySelector('input[name="ekspedisi"]:checked')?.value || '';
+      let ekspedisi = selectedShip;
+      if (selectedShip === '__OTHER__') {
+        ekspedisi = $('#ekspedisiManual').value.trim();
+        if (!ekspedisi) throw new Error('Nama ekspedisi lainnya wajib diisi.');
+      }
+
       const bankTujuan = document.querySelector('input[name="bankTujuan"]:checked')?.value || '';
 
       return {
@@ -363,10 +427,69 @@
       };
     }
 
+    function renderShipOptions(rawList){
+      const container = $('#shipOptions');
+      container.replaceChildren();
+      const list = Array.isArray(rawList) && rawList.length ? rawList : ['Shopee', 'J&T'];
+
+      [...list, '__OTHER__'].forEach((name, i) => {
+        const other = name === '__OTHER__';
+        const choice = document.createElement('div');
+        choice.className = 'choice';
+
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'ekspedisi';
+        radio.id = `ship_${i}`;
+        radio.value = name;
+        if (i === 0) radio.required = true;
+
+        const label = document.createElement('label');
+        label.htmlFor = radio.id;
+        const icon = document.createElement('span');
+        icon.className = 'icon';
+        icon.textContent = other ? '✍️' : '📦';
+        const text = document.createElement('span');
+        const title = document.createElement('b');
+        title.textContent = other ? 'Lainnya' : name;
+        const detail = document.createElement('small');
+        detail.textContent = other ? 'Isi nama ekspedisi manual' : 'Pilihan jastiper';
+        text.appendChild(title);
+        text.appendChild(document.createElement('br'));
+        text.appendChild(detail);
+        label.appendChild(icon);
+        label.appendChild(text);
+        radio.addEventListener('change', toggleOtherShip);
+        choice.appendChild(radio);
+        choice.appendChild(label);
+        container.appendChild(choice);
+      });
+      if (pendingShipValue) selectShip(pendingShipValue);
+    }
+
+    function toggleOtherShip(){
+      const other = document.querySelector('input[name="ekspedisi"]:checked')?.value === '__OTHER__';
+      $('#otherShipWrap').style.display = other ? 'block' : 'none';
+      $('#ekspedisiManual').required = other;
+      if (!other) $('#ekspedisiManual').value = '';
+    }
+
+    function selectShip(value){
+      if (!value) return;
+      const radios = [...document.querySelectorAll('input[name="ekspedisi"]')];
+      const match = radios.find(r => r.value === value);
+      const selected = match || radios.find(r => r.value === '__OTHER__');
+      if (!selected) return;
+      selected.checked = true;
+      if (!match) $('#ekspedisiManual').value = value;
+      toggleOtherShip();
+    }
+
     function renderConfig(cfg){
       appConfig = cfg;
       editState.shareCode = cfg.jastiper?.shareCode || editState.shareCode;
       $('#shopBadge').textContent = cfg.jastiper?.namaJastip ? `Form milik ${cfg.jastiper.namaJastip}` : '';
+      renderShipOptions(cfg.ekspedisiList);
 
       const container = $('#bankOptions');
       container.replaceChildren();
@@ -428,22 +551,26 @@
       if (match) match.checked = true;
     }
 
-    async function loadEditData(orderId, token){
+    async function loadEditData(orderId, token, source = 'url'){
       showStatus('Memuat data sebelumnya…');
       try{
         const data = await callApi('getConfirmation', { orderId, editToken: token });
         clearStatus();
         editState.orderId = orderId;
         editState.editToken = token;
-        $('#editBadge').style.display = 'block';
+        showEditBadge(
+          source === 'device'
+            ? '✏️ Memuat pesanan Anda sebelumnya di perangkat ini.'
+            : '✏️ Mode edit aktif — data lama berhasil dimuat.'
+        );
         $('#submitBtn').textContent = 'Perbarui Data';
 
         $('#namaLengkap').value = data.namaLengkap || '';
         $('#alamat').value = data.alamat || '';
         $('#noHp').value = data.noHp || '';
 
-        const ship = document.querySelector(`input[name="ekspedisi"][value="${CSS.escape(data.ekspedisi || '')}"]`);
-        if(ship) ship.checked = true;
+        pendingShipValue = data.ekspedisi || '';
+        selectShip(pendingShipValue);
         pendingBankValue = data.bankTujuan || '';
         selectBank(pendingBankValue);
 
@@ -453,12 +580,55 @@
         if(data.buktiTransferUrl){
           $('#existingProof').innerHTML = 'Bukti transfer lama sudah tersimpan. Upload file baru hanya jika ingin menggantinya.';
         }
+
+        // Simpan konfirmasi tervalidasi dan sembunyikan token edit dari URL browser publik
+        editState.editUrl = `${location.origin || ''}${location.pathname}?shop=${encodeURIComponent(editState.shareCode)}&id=${encodeURIComponent(orderId)}&token=${encodeURIComponent(token)}`;
+        saveDeviceOrder(editState.shareCode, orderId, token, editState.editUrl);
+        if(source === 'url' && history && typeof history.replaceState === 'function' && editState.shareCode){
+          const cleanUrl = `${location.pathname}?shop=${encodeURIComponent(editState.shareCode)}`;
+          history.replaceState(null, '', cleanUrl);
+        }
       }catch(err){
-        showStatus(err.message || String(err), 'error');
+        if(source === 'device' && err.credentialRejected){
+          clearSavedDeviceOrder(editState.shareCode);
+          editState.orderId = '';
+          editState.editToken = '';
+          editState.editUrl = '';
+          $('#editBadge').style.display = 'none';
+          showStatus('Pesanan tersimpan di perangkat ini sudah tidak valid. Silakan isi form baru.', 'info');
+        }else{
+          showStatus(err.message || String(err), 'error');
+        }
       }
     }
 
     $('#addItem').addEventListener('click', () => addItem());
+
+    $('#forgetDevice').addEventListener('click', () => {
+      clearSavedDeviceOrder(editState.shareCode);
+      editState.orderId = '';
+      editState.editToken = '';
+      editState.editUrl = '';
+      $('#editBadge').style.display = 'none';
+      $('#submitBtn').textContent = 'Kirim Konfirmasi';
+      $('#result').style.display = 'none';
+      $('#namaLengkap').value = '';
+      $('#alamat').value = '';
+      $('#noHp').value = '';
+      $('#buktiTransfer').value = '';
+      $('#existingProof').innerHTML = '';
+      pendingBankValue = '';
+      pendingShipValue = '';
+      const checkedShip = document.querySelector('input[name="ekspedisi"]:checked');
+      if(checkedShip) checkedShip.checked = false;
+      $('#ekspedisiManual').value = '';
+      toggleOtherShip();
+      const checkedBank = document.querySelector('input[name="bankTujuan"]:checked');
+      if(checkedBank) checkedBank.checked = false;
+      $('#items').innerHTML = '';
+      addItem();
+      showStatus('Akses edit di perangkat ini telah dihapus. Form dikembalikan ke konfirmasi baru.', 'info');
+    });
 
     $('#form').addEventListener('submit', async e => {
       e.preventDefault();
@@ -476,10 +646,11 @@
         editState.orderId = res.orderId;
         editState.editToken = res.editToken;
         editState.editUrl = res.editUrl;
+        saveDeviceOrder(editState.shareCode, res.orderId, res.editToken, res.editUrl);
 
         $('#resultId').textContent = res.orderId;
         $('#result').style.display = 'block';
-        $('#editBadge').style.display = 'block';
+        showEditBadge('✏️ Konfirmasi tersimpan dan diingat pada perangkat ini.');
 
         const waText = encodeURIComponent(
           `Link edit konfirmasi jastip saya:\n${res.editUrl}\n\nMohon jangan bagikan link ini kepada orang lain.`
@@ -515,10 +686,22 @@
         showStatus(err.message || String(err), 'error');
       }
 
-      if(id && token) loadEditData(id, token);
+      if(id && token){
+        await loadEditData(id, token, 'url');
+        return;
+      }
+
+      if(shop){
+        const saved = getSavedDeviceOrder(shop);
+        if(saved && saved.orderId && saved.editToken){
+          editState.editUrl = saved.editUrl || '';
+          await loadEditData(saved.orderId, saved.editToken, 'device');
+        }
+      }
     }
 
     function boot(){
+      if(location.pathname === '/' && !location.search) return;
       addItem();
 
       if(typeof google !== 'undefined' && google.script && google.script.url && typeof google.script.url.getLocation === 'function'){

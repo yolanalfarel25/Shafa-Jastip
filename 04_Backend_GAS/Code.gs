@@ -18,7 +18,7 @@ const ORDER_HEADERS = [
 const USER_HEADERS = [
   'jastiperId','createdAt','updatedAt','namaJastip','namaPemilik','email','noHp',
   'passwordSalt','passwordHash','shareCode','driveFolderId',
-  'briNumber','briName','bsiNumber','bsiName','status','bankAccountsJson'
+  'briNumber','briName','bsiNumber','bsiName','status','bankAccountsJson','ekspedisiListJson'
 ];
 
 const SESSION_HEADERS = ['tokenHash','jastiperId','createdAt','expiresAt'];
@@ -153,7 +153,7 @@ function signupJastiper(payload) {
   users.appendRow([
     jastiperId, now, now, namaJastip, namaPemilik, email, noHp,
     salt, passwordHash, shareCode, folder.getId(),
-    '', '', '', '', 'active', ''
+    '', '', '', '', 'active', '', ''
   ]);
 
   const session = createSession_(jastiperId);
@@ -248,6 +248,9 @@ function updateJastiperSettings(sessionToken, payload) {
     set('namaPemilik', namaPemilik);
     set('email', email);
     set('noHp', noHp);
+    if (Object.prototype.hasOwnProperty.call(payload, 'ekspedisiList')) {
+      set('ekspedisiListJson', JSON.stringify(cleanEkspedisiList_(payload.ekspedisiList)));
+    }
     if (Object.prototype.hasOwnProperty.call(payload, 'bankAccounts')) {
       const bankAccounts = cleanBankAccounts_(payload.bankAccounts);
       set('bankAccountsJson', JSON.stringify(bankAccounts));
@@ -338,7 +341,8 @@ function getPublicConfig(shareCode, orderId, editToken) {
       namaJastip: user.namaJastip,
       shareCode: user.shareCode
     },
-    bankAccounts: parseBankAccounts_(user)
+    bankAccounts: parseBankAccounts_(user),
+    ekspedisiList: parseEkspedisiList_(user)
   };
 }
 
@@ -600,6 +604,9 @@ function validateBuyerPayload_(payload) {
   ['namaLengkap','alamat','noHp','ekspedisi','bankTujuan'].forEach(k => {
     if (!String(payload[k] || '').trim()) throw new Error('Mohon lengkapi semua field wajib.');
   });
+  if (/^[=+\-@]/.test(String(payload.ekspedisi).trim())) {
+    throw new Error('Nama ekspedisi tidak valid.');
+  }
   if (!Array.isArray(payload.items) || !payload.items.length) {
     throw new Error('Minimal satu barang harus ditambahkan.');
   }
@@ -771,11 +778,47 @@ function publicProfile_(user) {
     noHp:user.noHp,
     shareCode:user.shareCode,
     bankAccounts: parseBankAccounts_(user),
+    ekspedisiList: parseEkspedisiList_(user),
     briNumber:user.briNumber || '',
     briName:user.briName || '',
     bsiNumber:user.bsiNumber || '',
     bsiName:user.bsiName || ''
   };
+}
+
+function cleanEkspedisiList_(rawList) {
+  if (rawList == null) return [];
+  if (!Array.isArray(rawList)) throw new Error('Format daftar ekspedisi tidak valid.');
+  if (rawList.length > 10) throw new Error('Maksimal 10 ekspedisi.');
+
+  const cleaned = [];
+  const seen = {};
+  rawList.forEach((rawName, index) => {
+    const name = String(rawName || '').trim();
+    if (!name) return;
+    if (name.length > 40) throw new Error(`Ekspedisi ke-${index + 1}: Nama maksimal 40 karakter.`);
+    if (/^[=+\-@]/.test(name)) throw new Error(`Ekspedisi ke-${index + 1}: Nama tidak valid.`);
+    if (/^lainnya$/i.test(name)) throw new Error('Nama ekspedisi "Lainnya" sudah disediakan untuk buyer.');
+    const key = name.toLowerCase();
+    if (seen[key]) throw new Error(`Ekspedisi "${name}" duplikat.`);
+    seen[key] = true;
+    cleaned.push(name);
+  });
+  return cleaned;
+}
+
+function parseEkspedisiList_(user) {
+  const fallback = ['Shopee', 'J&T'];
+  const jsonStr = String((user && user.ekspedisiListJson) || '').trim();
+  if (!jsonStr) return fallback;
+  try {
+    const parsed = JSON.parse(jsonStr);
+    if (!Array.isArray(parsed)) return fallback;
+    const cleaned = cleanEkspedisiList_(parsed);
+    return cleaned.length ? cleaned : fallback;
+  } catch (e) {
+    return fallback;
+  }
 }
 
 function cleanBankAccounts_(rawList) {

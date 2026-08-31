@@ -2392,3 +2392,287 @@ Pekerjaan implementasi migrasi `JST-028` selesai dan diverifikasi mandiri setela
   - `doPost` action valid `getPublicConfig` merespons JSON `{ ok: false, error: 'Link jastip tidak aktif.' }` untuk kode sintetis.
   - Probe CORS merespons `Access-Control-Allow-Origin: *` dan `Content-Type: application/json; charset=utf-8`.
 - [ ] Rollback staging (jika diperlukan): redeploy deployment staging yang sama ke versi immutable `@14`.
+
+
+---
+
+## JST-029 — Ingat Konfirmasi Buyer pada Browser
+
+- **Status:** `DONE`
+- **Jenis:** `feat`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-31
+- **Approval:** pengguna (Master), 2026-08-31, lewat switch ke Act Mode dan approval eskalasi penambahan mirror GAS buyer ke scope.
+
+### Tujuan
+
+Mengarahkan link buyer ke frontend GitHub Pages dan mengingat satu konfirmasi aktif per browser serta `shareCode`, sehingga buyer dapat membuka kembali link jastiper pada browser sama untuk memuat dan memperbarui data sebelumnya.
+
+### Acceptance criteria
+
+- [x] Kredensial edit `orderId`, `editToken`, dan `editUrl` disimpan setelah konfirmasi berhasil, dipisah per `shareCode`.
+- [x] Pembukaan ulang `?shop=...` pada browser sama memuat data sebelumnya dalam mode edit.
+- [x] Parameter eksplisit `?id=...&token=...` selalu lebih diprioritaskan daripada data browser.
+- [x] Kredensial browser yang ditolak server karena order hilang atau token invalid dihapus tanpa melemahkan verifikasi token server-side; error jaringan tidak menghapus cache.
+- [x] Buyer dapat melupakan akses edit tersimpan pada perangkat bersama.
+- [x] Template buyer terkait (`index.html`, `03_Konfirmasi_Pembelian/Konfirmasi.html`, `04_Backend_GAS/Konfirmasi.html`) tetap sinkron dan test lokal lulus.
+- [x] Konfigurasi runtime `FRONTEND_BASE_URL` tetap menjadi langkah operator terpisah; task ini tidak mengubah deployment atau Script Properties.
+
+### Ruang lingkup
+
+- `index.html`
+- `03_Konfirmasi_Pembelian/Konfirmasi.html`
+- `04_Backend_GAS/Konfirmasi.html`
+- `tests/jst024_confirmation_url_param_check.js`
+- `tests/jst029_buyer_device_edit_check.js`
+- `PLAN.md`
+- `CHANGELOG.md`
+
+### Gate eskalasi
+
+- Penambahan `04_Backend_GAS/Konfirmasi.html` telah disetujui Master untuk menjaga konsistensi template kanonik dan mirror GAS tanpa deploy.
+- Tidak ada perubahan backend `Code.gs`, deployment, atau Script Properties.
+
+### Risiko keamanan/data
+
+- `editToken` memberi hak memperbarui data buyer; penyimpanan browser hanya cocok untuk perangkat pribadi atau browser profile terpisah.
+- Pengguna lain pada browser profile sama dapat membuka data tersimpan. UI wajib memberi peringatan dan tindakan melupakan perangkat.
+- PII buyer tidak disimpan di browser; backend tetap memverifikasi hash token untuk setiap baca dan tulis.
+- Token tidak boleh dicetak ke log, test fixture, `PLAN.md`, atau `CHANGELOG.md`.
+
+### Rencana rollback
+
+Revert hanya perubahan `JST-029` pada branch kerja. Jangan menghapus data browser atau mengubah resource produksi melalui rollback repository.
+
+### Hasil validasi
+
+- [x] Test unit mandiri `tests/jst029_buyer_device_edit_check.js`: lulus (key storage `jastip-order-{shareCode}`, isolasi antartoko, prioritas URL dibanding storage, pemulihan URL setelah sanitasi, pembersihan cache saat token ditolak, ketahanan cache saat transient error, dan integrasi tombol lupakan perangkat).
+- [x] Suite test lokal lengkap (11 test: `JST-016`, `JST-018`, `JST-019`, `JST-020`, `JST-021`, `JST-022`, `JST-023`, `JST-024`, `JST-025`, `JST-028`, `JST-029`): seluruhnya lulus tanpa regresi.
+- [x] Validasi parser JavaScript: seluruh script pada 9 file HTML (`Login`, `Dashboard`, `Konfirmasi` pada kanonik, GAS mirror, dan root Pages) ter-parse bersih tanpa error sintaks.
+- [x] Konsistensi template triple: `03_Konfirmasi_Pembelian/Konfirmasi.html`, `04_Backend_GAS/Konfirmasi.html`, dan `index.html` terbukti byte-identical.
+- [x] Audit keamanan dan privasi:
+  - Zero PII buyer (nama, alamat, no HP, foto) disimpan pada `localStorage`.
+  - Otorisasi edit tetap 100% server-side via SHA-256 token hash di backend GAS.
+  - Parameter URL `id` dan `token` disanitasi dari history address bar setelah pemuatan berhasil.
+  - Zero high-confidence hardcoded secrets pada diff.
+- [x] `git diff --check`: lulus bersih.
+
+### Catatan review
+
+Implementasi persistensi status edit buyer diselesaikan secara mandiri di branch kerja setelah Master menyetujui plan BMAD dan eskalasi sinkronisasi mirror GAS. Kredensial edit lokal kini memungkinkan buyer pada perangkat yang sama memperbarui data yang telah dikirim hanya dengan membuka kembali link jastiper. Task tidak menyentuh database produksi, deployment staging/produksi, atau Script Properties. Operator dapat secara terpisah memasukkan Script Property `FRONTEND_BASE_URL` pada GAS Settings bila ingin link edit WA/clipboard diarahkan ke origin Pages.
+
+
+---
+
+## JST-030 — Preview Foto Dashboard
+
+- **Status:** `DONE`
+- **Jenis:** `feat`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-31
+- **Approval:** pengguna (Master), 2026-08-31, lewat switch ke Act Mode.
+
+### Tujuan
+
+Memungkinkan jastiper memperbesar foto barang dan bukti transfer customer langsung dari Dashboard untuk pemeriksaan detail tanpa membuka Drive.
+
+### Acceptance criteria
+
+- [x] Foto yang selesai dimuat dapat membuka preview fullscreen melalui klik, `Enter`, atau `Space`.
+- [x] Modal dapat ditutup lewat tombol, backdrop, atau `Escape`.
+- [x] Modal memakai `role="dialog"`, `aria-modal`, caption, alt text, focus trap, dan mengembalikan fokus ke thumbnail pembuka.
+- [x] Foto yang masih memuat atau gagal tidak membuka modal.
+- [x] Layout gambar responsif dan tiga mirror Dashboard byte-identical.
+- [x] Test lokal mandiri dan suite regresi lulus.
+
+### Ruang lingkup
+
+- `02_Dashboard_Jastiper/Dashboard.html`
+- `04_Backend_GAS/Dashboard.html`
+- `dashboard.html`
+- `tests/jst030_photo_lightbox_check.js`
+- `PLAN.md`
+- `CHANGELOG.md`
+
+### Risiko keamanan/data
+
+- URL Drive tetap divalidasi dan dimuat lewat action backend `getJastiperImageData`; modal hanya memakai data URI yang sudah diterima Dashboard.
+- Task tidak mengubah auth, sesi, token, permission Drive, backend, Script Properties, atau data produksi.
+- Caption dirender dengan `textContent`; label thumbnail tetap melalui helper `esc`.
+
+### Rencana rollback
+
+Revert hanya perubahan `JST-030` pada tiga mirror Dashboard, test JST-030, dan entri dokumentasi. Tidak ada data atau resource produksi yang perlu diubah.
+
+### Hasil validasi
+
+- [x] `node tests/jst030_photo_lightbox_check.js`: lulus (mirror, markup dialog, parser, klik, keyboard, backdrop, caption, focus trap, dan focus return).
+- [x] `node tests/jst025_dashboard_image_render_check.js`: lulus tanpa regresi renderer foto.
+- [x] Suite test lokal lengkap (12 test: `JST-016`, `JST-018`, `JST-019`, `JST-020`, `JST-021`, `JST-022`, `JST-023`, `JST-024`, `JST-025`, `JST-028`, `JST-029`, `JST-030`): seluruhnya lulus.
+- [x] Parser JavaScript tiga Dashboard: lulus.
+- [x] Konsistensi template triple: hash SHA-256 sama `7e4820aba527d5d45bb3ba020f221d6544fe6e2db5dced6e229b597927fb0da9`.
+- [x] `git diff --check`: lulus bersih.
+
+### Catatan review
+
+Preview memakai lightbox native HTML/CSS/JS tanpa dependency. Swipe, galeri antar-foto, download, dan pinch-to-zoom tidak ditambahkan karena di luar scope. Belum ada deployment produksi atau staging.
+
+
+---
+
+## JST-031 — Custom Domain dan Clean Routing GitHub Pages
+
+- **Status:** `DONE`
+- **Jenis:** `feat`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-31
+- **Approval:** pengguna (Master), 2026-08-31, lewat switch ke Act Mode setelah domain `jastipin.my.id` dapat diakses.
+
+### Tujuan
+
+Menjadikan `https://jastipin.my.id/` tanpa query masuk langsung ke `/login`, memakai route auth bersih `/login` dan `/dashboard`, serta mempertahankan link buyer legacy berbasis query `/?shop=...`.
+
+### Acceptance criteria
+
+- [x] `CNAME` berisi tepat `jastipin.my.id`.
+- [x] Root `/` tanpa query mengalihkan ke `/login` tanpa memuat konfigurasi buyer.
+- [x] Root dengan query buyer `?shop=...` tetap membuka form konfirmasi.
+- [x] Navigasi auth memakai `/login` dan `/dashboard` pada tiga mirror Login/Dashboard.
+- [x] `404.html` memulihkan clean route auth ke file statis dan mengarahkan route asing ke `/login` tanpa meneruskan query sensitif.
+- [x] Test routing dan seluruh suite regresi lokal lulus.
+
+### Ruang lingkup
+
+- `CNAME`
+- `404.html`
+- `index.html`
+- `login.html`
+- `dashboard.html`
+- `01_Login_Signup/Login.html`
+- `02_Dashboard_Jastiper/Dashboard.html`
+- `03_Konfirmasi_Pembelian/Konfirmasi.html`
+- `04_Backend_GAS/Login.html`
+- `04_Backend_GAS/Dashboard.html`
+- `04_Backend_GAS/Konfirmasi.html`
+- `tests/jst020_auth_auto_navigation_check.js`
+- `tests/jst031_custom_domain_routing_check.js`
+- `PLAN.md`
+- `CHANGELOG.md`
+
+### Di luar ruang lingkup
+
+- Perubahan DNS, GitHub Pages Settings, atau Enforce HTTPS.
+- Deployment GAS/GitHub Pages dan perubahan `FRONTEND_BASE_URL` pada Script Properties.
+- Perubahan backend, auth, sesi, token, schema Sheet, data, Drive, atau OAuth.
+- Slug buyer unik; dilanjutkan sebagai `JST-032`.
+
+### Risiko keamanan/data
+
+- Query `id` dan `token` buyer harus tetap mencapai form buyer; root redirect hanya berlaku saat query kosong.
+- Route 404 asing tidak boleh meneruskan query atau fragment yang mungkin sensitif ke URL login.
+- Semua otorisasi buyer/jastiper tetap server-side; task tidak mengubah trust boundary.
+
+### Rencana validasi
+
+1. Jalankan test JST-031 dan suite test lokal lengkap.
+2. Parse JavaScript seluruh template frontend serta `404.html`.
+3. Verifikasi tiga kelompok mirror frontend tetap byte-identical.
+4. Jalankan `git diff --check`, review diff, dan scan pola rahasia/data pribadi.
+5. Catat bukti, keterbatasan, rollback, lalu ubah status menjadi `DONE` dan sinkronkan `CHANGELOG.md`.
+
+### Rencana rollback
+
+Revert hanya file `JST-031`. Root kembali menampilkan form buyer dan navigasi kembali memakai `.html`; DNS, backend, Script Properties, dan data tidak berubah.
+
+
+
+---
+
+## JST-032 — Ekspedisi Kustom dan Tampilan Minimalis Data Buyer
+
+- **Status:** `DONE`
+- **Jenis:** `feat`
+- **Pemilik:** agen implementasi
+- **Dibuat:** 2026-08-31
+- **Approval:** pengguna (Master), 2026-08-31, lewat switch ke Act Mode.
+
+### Tujuan
+
+1. Jastiper dapat mengelola daftar opsi ekspedisi di tab Pengaturan Jastip Dashboard (tambah/hapus, dinamis, default fallback Shopee & J&T).
+2. Halaman Konfirmasi Pembelian Buyer merender opsi ekspedisi secara dinamis dari konfigurasi jastiper, ditambah opsi "Lainnya" yang menampilkan field input teks manual untuk diisi buyer.
+3. Halaman Data Buyer di Dashboard Jastiper menampilkan ringkasan minimalis: hanya Nama Lengkap, ID Order, dan Alamat Pengiriman. Rincian lengkap (WhatsApp, Ekspedisi, Bank Tujuan, Barang & Foto, Bukti Transfer) dibuka saat mengklik tombol "Detail".
+
+### Acceptance criteria
+
+- [x] `USER_HEADERS` backend memiliki kolom `ekspedisiListJson` yang termigrasi aman via `ensureSheet_`.
+- [x] `updateJastiperSettings` memvalidasi dan menyimpan daftar ekspedisi jastiper (maks 10 opsi, anti formula injection, sanitasi panjang).
+- [x] `getPublicConfig` dan `publicProfile_` mengembalikan `ekspedisiList` terurai atau fallback `['Shopee', 'J&T']`.
+- [x] Panel Pengaturan Dashboard memiliki UI Tambah/Hapus Ekspedisi yang tersinkronisasi saat klik Simpan Pengaturan.
+- [x] Panel Data Buyer Dashboard merender kartu minimalis (Nama, ID Order, Alamat) dengan tombol aksi "Detail" yang melakukan expand/collapse informasi detail secara elegan.
+- [x] Halaman Konfirmasi Buyer merender opsi radio ekspedisi dinamis + opsi "Lainnya" dengan input manual.
+- [x] Pemilihan opsi "Lainnya" saat submit menyimpan teks input manual sebagai nilai `ekspedisi`.
+- [x] Mode edit konfirmasi buyer memulihkan opsi ekspedisi kustom/manual dengan benar.
+- [x] Tiga set mirror file (Dashboard, Konfirmasi, Login) tetap tersinkronisasi dan identik.
+- [x] Test regresi lokal dan test baru `tests/jst032_ekspedisi_detail_buyer_check.js` lulus 100%.
+
+### Ruang lingkup
+
+- `04_Backend_GAS/Code.gs`
+- `04_Backend_GAS/Dashboard.html`
+- `04_Backend_GAS/Konfirmasi.html`
+- `02_Dashboard_Jastiper/Dashboard.html`
+- `03_Konfirmasi_Pembelian/Konfirmasi.html`
+- `dashboard.html`
+- `index.html`
+- `tests/jst023_dashboard_save_settings_check.js`
+- `tests/jst032_ekspedisi_detail_buyer_check.js`
+- `PLAN.md`
+- `CHANGELOG.md`
+
+### Di luar ruang lingkup
+
+- PIN login/akses buyer, lupa PIN, atau auth buyer.
+- Deployment staging / produksi dan perubahan Script Properties.
+- Perubahan alur pembatasan file/upload Google Drive.
+
+### Risiko keamanan/data
+
+- Proteksi formula injection Sheets (`^[=+\-@]`) diterapkan pada daftar ekspedisi jastiper dan input ekspedisi manual buyer.
+- Tenant isolation jastiper diuji pada level sheet row update.
+- Aksesibilitas detail expandable menggunakan `aria-expanded` dan `aria-controls`.
+
+### Rencana validasi
+
+1. Unit test backend & frontend logic via `tests/jst032_ekspedisi_detail_buyer_check.js`.
+2. Menjalankan seluruh suite test regresi lokal (14 file test).
+3. Parsing JavaScript seluruh file template HTML.
+4. Verifikasi byte-identical tiga mirror Dashboard dan Konfirmasi.
+5. Review diff dan pemindaian pola rahasia/kredensial.
+
+### Rencana rollback
+
+Revert perubahan commit JST-032. Schema sheet backward compatible karena `ekspedisiListJson` ditambahkan di akhir kolom dan fallback default ke Shopee & J&T.
+
+### Hasil validasi
+
+- [x] `node tests/jst032_ekspedisi_detail_buyer_check.js`: lulus 100% (syntax, parsing fallback, sanitasi formula injection, update setting tenant isolation, dynamic radio UI, input manual Lainnya, toggle detail buyer).
+- [x] Seluruh suite test lokal (14 file test: `JST-016`, `JST-018` s/d `JST-025`, `JST-028` s/d `JST-032`): seluruhnya lulus 100%.
+- [x] Parser JavaScript seluruh 10 file HTML: lulus tanpa error sintaks.
+- [x] Byte consistency `cmp -s`: tiga pasang mirror Dashboard dan Konfirmasi terbukti identik.
+- [x] `git diff --check` dan pemindaian rahasia: lulus bersih.
+
+### Catatan review
+
+Pengelolaan opsi ekspedisi jastiper dan form konfirmasi buyer telah terpasang dengan proteksi sanitasi penuh. Tampilan data buyer di Dashboard kini lebih ringkas dan dapat diperluas per pesanan. Tidak ada deployment produksi atau perubahan resource rahasia yang disentuh.
+
+### Hasil validasi
+
+- [x] `node tests/jst031_custom_domain_routing_check.js`: lulus (CNAME, fallback 404, navigasi clean auth, mirror triple konsisten, dan redirect root kosong ke `/login`).
+- [x] Suite test lokal lengkap (13 test: `JST-016`, `JST-018` s/d `JST-025`, `JST-028`, `JST-029`, `JST-030`, `JST-031`): seluruhnya lulus.
+- [x] Parser JavaScript seluruh 10 file HTML (`index`, `login`, `dashboard`, `404`, serta template kanonik & GAS): lulus tanpa error sintaks.
+- [x] Konsistensi byte `cmp -s`: tiga pasang file Login, Dashboard, dan Konfirmasi terbukti identik.
+- [x] `git diff --check`: lulus bersih.
+
+### Catatan review
+
+Domain `jastipin.my.id` kini mengarahkan pengunjung umum root ke `/login`. Permintaan buyer dengan query parameter tetap diarahkan ke formulir konfirmasi. Navigasi login dan dashboard menggunakan URL bersih `/login` dan `/dashboard` dengan fallback `404.html` GitHub Pages. Deployment backend GAS, konfigurasi DNS hosting, dan Script Properties produksi/staging tidak disentuh.

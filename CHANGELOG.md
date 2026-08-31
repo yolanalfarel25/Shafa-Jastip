@@ -6,6 +6,14 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 
 ### Added
 
+- Pengaturan daftar ekspedisi kustom per jastiper, opsi ekspedisi buyer dinamis, pilihan manual “Lainnya”, dan test kontrak lokal `tests/jst032_ekspedisi_detail_buyer_check.js` (`JST-032`).
+- Custom domain GitHub Pages `jastipin.my.id`, fallback clean route melalui `404.html`, dan test routing lokal `tests/jst031_custom_domain_routing_check.js` (`JST-031`).
+- Lightbox aksesibel untuk memperbesar foto barang dan bukti transfer pada Dashboard melalui klik atau keyboard, dengan caption, backdrop, `Escape`, focus trap, dan focus return (`JST-030`).
+- Test suite lokal `tests/jst030_photo_lightbox_check.js` memverifikasi modal, interaksi keyboard, fokus, renderer foto, dan sinkronisasi tiga mirror Dashboard (`JST-030`).
+- Persistensi status edit buyer pada `localStorage` browser per `shareCode` toko (`jastip-order-{shareCode}`) yang memuat kembali pesanan sebelumnya saat membuka tautan toko tanpa token (`JST-029`).
+- Tombol “Lupakan di Perangkat Ini” pada formulir konfirmasi buyer untuk membersihkan akses edit tersimpan pada perangkat bersama (`JST-029`).
+- Sanitasi URL browser pada formulir konfirmasi buyer setelah token edit divalidasi via `history.replaceState` (`JST-029`).
+- Test suite lokal `tests/jst029_buyer_device_edit_check.js` memverifikasi prioritas URL, persistensi, isolasi antartoko, dan penghapusan token tidak valid (`JST-029`).
 - Dokumen governance, BMAD, konteks brownfield, keamanan, agenda, dan ADR untuk baseline prabuild (`JST-001`).
 - Identitas visual “Jastip Apps” dan aset logo pada antarmuka (`JST-002`).
 - Panduan prompt operasional agen untuk memulai, melanjutkan, dan memulihkan pekerjaan (`JST-009`).
@@ -20,6 +28,7 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 
 ### Security
 
+- Validasi server ekspedisi kustom dan manual membatasi panjang/jumlah, menolak duplikat/nama cadangan, serta mencegah formula injection Google Sheets (`JST-032`).
 - Approval gate untuk auth, token, upload, OAuth, data produksi, permission, dan deployment.
 - Daftar risiko awal auth, upload, tenant isolation, race condition, clickjacking, dan retensi data.
 - Audit keamanan statis autentikasi dan sesi GAS (`JST-003`).
@@ -27,6 +36,9 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 
 ### Changed
 
+- Kartu Data Buyer Dashboard diringkas menjadi Nama, ID Order, dan Alamat; tombol Detail membuka data pesanan lengkap secara aksesibel (`JST-032`).
+- Root URL Pages `/` tanpa query kini langsung redirect ke `/login` tanpa memuat konfigurasi form buyer, sementara akses toko/edit buyer berbasis query `/?shop=...` tetap utuh (`JST-031`).
+- Navigasi auth login dan dashboard dialihkan ke URL bersih `/login` dan `/dashboard` pada seluruh mirror template frontend (`JST-031`).
 - Workflow agen memakai plan BMAD di Plan Mode, approval implementasi saat pindah ke Act Mode, eksekusi sampai `DONE`, eskalasi berbasis dampak, dan konfirmasi commit/push di akhir (`JST-026`).
 - Dashboard dan backend mendukung perubahan username serta email aktif dengan histori audit email dan pencabutan sesi lama (`JST-008`).
 - Navigasi login, signup, logout, dan sesi invalid mengalihkan viewport top-level otomatis (`JST-020`).
