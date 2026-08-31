@@ -2676,3 +2676,86 @@ Pengelolaan opsi ekspedisi jastiper dan form konfirmasi buyer telah terpasang de
 ### Catatan review
 
 Domain `jastipin.my.id` kini mengarahkan pengunjung umum root ke `/login`. Permintaan buyer dengan query parameter tetap diarahkan ke formulir konfirmasi. Navigasi login dan dashboard menggunakan URL bersih `/login` dan `/dashboard` dengan fallback `404.html` GitHub Pages. Deployment backend GAS, konfigurasi DNS hosting, dan Script Properties produksi/staging tidak disentuh.
+
+
+
+---
+
+## JST-033 — Tombol hapus data buyer beserta foto di Drive dan baris Google Sheet
+
+- **Status:** `DONE`
+- **Jenis:** `feat`
+- **Pemilik:** agen fitur
+- **Dibuat:** 2026-09-01
+- **Approval:** perpindahan Act Mode oleh pengguna (Master) pada 2026-09-01.
+
+### Tujuan
+
+Menambahkan fungsi hapus data buyer di Dashboard jastiper yang secara atomik/terkoordinasi menghapus foto-foto barang dan bukti transfer di Google Drive (masuk ke Sampah/Trash) serta menghapus baris data buyer terkait dari Google Sheet database dengan proteksi tenant isolation server-side.
+
+### Acceptance criteria
+
+- [x] Endpoint backend GAS `deleteOrder` menerima `sessionToken` dan `orderId`.
+- [x] Otorisasi server-side: verifikasi sesi aktif jastiper dan tenant isolation (orderId wajib milik jastiper terkait).
+- [x] Penghapusan foto Google Drive: mencari semua URL file pada `itemsJson` dan `buktiTransferUrl`, memvalidasi kepemilikan folder (`assertFileInFolder_`), lalu memindahkan file ke Trash (`setTrashed(true)`).
+- [x] Kegagalan parsial Drive (misal file sudah terhapus manual) tidak membatalkan penghapusan baris Sheet (best-effort reporting).
+- [x] Penghapusan baris Google Sheet: baris data order dihapus dari sheet `Konfirmasi Jastip v4`.
+- [x] Frontend Dashboard: tombol `× Hapus` dengan warna peringatan bahaya di samping tombol `Detail`.
+- [x] Konfirmasi dialog interaktif (`confirm()`) sebelum memanggil API hapus.
+- [x] Tombol status busy/disabled saat proses penghapusan berlangsung, auto-refresh daftar buyer setelah berhasil.
+- [x] Sinkronisasi 3 file mirror Dashboard: `04_Backend_GAS/Dashboard.html`, `02_Dashboard_Jastiper/Dashboard.html`, `dashboard.html`.
+- [x] Test regresi lokal `tests/jst033_delete_order_check.js` dibuat dan lulus 100%.
+
+### Ruang lingkup
+
+- `04_Backend_GAS/Code.gs`
+- `04_Backend_GAS/Dashboard.html`
+- `02_Dashboard_Jastiper/Dashboard.html`
+- `dashboard.html`
+- `tests/jst028_api_contract_check.js`
+- `tests/jst033_delete_order_check.js`
+- `PLAN.md`
+- `CHANGELOG.md`
+
+### Di luar ruang lingkup
+
+- Penghapusan permanen file Drive tanpa mampir ke Trash.
+- Fitur undo / restore pesanan yang sudah terhapus.
+- Bulk delete (hapus massal banyak pesanan sekaligus).
+- Deployment staging / produksi dan modifikasi Script Properties.
+
+### Risiko keamanan/data
+
+- Penghapusan Sheet bersifat permanen, mitigasi: konfirmasi eksplisit UI dan tenant check di backend.
+- Tenant isolation: jastiper A tidak boleh bisa menghapus order milik jastiper B sekalipun tahu `orderId`-nya.
+- File Drive path traversal / unauthorized trash: `assertFileInFolder_` mencegah penghapusan file di luar folder jastiper.
+- Data pribadi / URL privat tidak dicatat ke log server.
+
+### Rencana validasi
+
+1. Unit test backend & mock via `tests/jst033_delete_order_check.js`.
+2. Menjalankan seluruh suite test regresi lokal.
+3. Parsing JavaScript seluruh file template HTML.
+4. Verifikasi byte-identical tiga mirror Dashboard.
+5. Review diff dan pemindaian pola rahasia/kredensial.
+
+### Rencana rollback
+
+Revert perubahan commit JST-033. Data yang terlanjur di-trash di Drive dapat dipulihkan melalui menu Trash Google Drive jastiper.
+
+### Bukti eksekusi dan verifikasi
+
+1. **Unit test dan mock contract execution**:
+   `node tests/jst033_delete_order_check.js` → Lulus.
+2. **Suite test regresi lokal**:
+   15 test suite lokal lulus tanpa error (JST-016 s.d. JST-033).
+3. **Pemeriksaan mirror Dashboard**:
+   `cmp -s 04_Backend_GAS/Dashboard.html 02_Dashboard_Jastiper/Dashboard.html` (MATCH)
+   `cmp -s 04_Backend_GAS/Dashboard.html dashboard.html` (MATCH)
+4. **Keamanan**:
+   Tenant isolation diverifikasi server-side sebelum hapus baris sheet atau file Drive. Tidak ada kredensial atau rahasia yang tercetak atau tersimpan.
+
+### Catatan review
+
+Fitur hapus buyer telah terintegrasi di backend `Code.gs` dan frontend Dashboard (3 file mirror). Operasi memindahkan foto barang dan bukti transfer ke Google Drive Trash serta menghapus baris pesanan dari Sheet dengan aman.
+

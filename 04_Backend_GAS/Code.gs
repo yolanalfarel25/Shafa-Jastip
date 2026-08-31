@@ -57,6 +57,8 @@ function doPost(e) {
         return jsonResponse_(getJastiperDashboard(body.sessionToken, body.searchText));
       case 'getJastiperImageData':
         return jsonResponse_(getJastiperImageData(body.sessionToken, body.driveFileUrl));
+      case 'deleteOrder':
+        return jsonResponse_(deleteOrder(body.sessionToken, body.orderId));
       default:
         return jsonResponse_({ ok: false, error: 'Aksi API tidak valid: ' + (action || 'kosong') });
     }
@@ -545,6 +547,61 @@ function getJastiperImageData(sessionToken, driveFileUrl) {
   if (!/^image\//i.test(mime)) throw new Error('File bukan gambar.');
 
   return `data:${mime};base64,${Utilities.base64Encode(blob.getBytes())}`;
+}
+
+function deleteOrder(sessionToken, orderId) {
+  const session = requireSession_(sessionToken);
+  const user = getUserObjectById_(session.jastiperId);
+  const cleanId = clean_(orderId, 100);
+  if (!cleanId) throw new Error('ID pesanan tidak valid.');
+
+  const sheet = getOrdersSheet_();
+  const rowNumber = findOrderRow_(sheet, cleanId);
+  if (!rowNumber) throw new Error('Pesanan tidak ditemukan.');
+
+  const rowValues = sheet.getRange(rowNumber, 1, 1, ORDER_HEADERS.length).getValues()[0];
+  const orderObj = rowToObject_(ORDER_HEADERS, rowValues);
+
+  if (String(orderObj.jastiperId) !== String(session.jastiperId)) {
+    throw new Error('Anda tidak memiliki hak untuk menghapus pesanan ini.');
+  }
+
+  const fileUrls = [];
+  const items = safeJsonParse_(orderObj.itemsJson, []);
+  if (Array.isArray(items)) {
+    items.forEach(it => {
+      if (it && it.photoUrl) fileUrls.push(it.photoUrl);
+    });
+  }
+  if (orderObj.buktiTransferUrl) {
+    fileUrls.push(orderObj.buktiTransferUrl);
+  }
+
+  let deletedFiles = 0;
+  let failedFiles = 0;
+
+  fileUrls.forEach(url => {
+    try {
+      const fileId = extractDriveFileId_(url);
+      if (fileId) {
+        const file = DriveApp.getFileById(fileId);
+        assertFileInFolder_(file, user.driveFolderId);
+        file.setTrashed(true);
+        deletedFiles++;
+      }
+    } catch (e) {
+      failedFiles++;
+    }
+  });
+
+  sheet.deleteRow(rowNumber);
+
+  return {
+    ok: true,
+    orderId: cleanId,
+    deletedFiles,
+    failedFiles
+  };
 }
 
 /* ========================= HELPERS ========================= */
