@@ -6,6 +6,8 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 
 ### Added
 
+- Tombol hapus buyer (`× Hapus`) di Dashboard jastiper yang menghapus baris Google Sheets dan memindahkan foto barang serta bukti transfer di Google Drive ke Sampah (Trash) dengan tenant isolation server-side (`JST-033`).
+- Test suite kontrak dan eksekusi penghapusan `tests/jst033_delete_order_check.js` (`JST-033`).
 - Pengaturan daftar ekspedisi kustom per jastiper, opsi ekspedisi buyer dinamis, pilihan manual “Lainnya”, dan test kontrak lokal `tests/jst032_ekspedisi_detail_buyer_check.js` (`JST-032`).
 - Custom domain GitHub Pages `jastipin.my.id`, fallback clean route melalui `404.html`, dan test routing lokal `tests/jst031_custom_domain_routing_check.js` (`JST-031`).
 - Lightbox aksesibel untuk memperbesar foto barang dan bukti transfer pada Dashboard melalui klik atau keyboard, dengan caption, backdrop, `Escape`, focus trap, dan focus return (`JST-030`).

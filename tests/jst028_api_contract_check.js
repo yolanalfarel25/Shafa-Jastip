@@ -120,7 +120,8 @@ const actionContracts = {
   saveConfirmation: [{ synthetic: 'payload' }],
   getConfirmation: ['ORDER-SYNTHETIC', 'EDIT-SYNTHETIC'],
   getJastiperDashboard: ['synthetic-session', 'search'],
-  getJastiperImageData: ['synthetic-session', 'https://drive.example.test/file']
+  getJastiperImageData: ['synthetic-session', 'https://drive.example.test/file'],
+  deleteOrder: ['synthetic-session', 'ORDER-SYNTHETIC']
 };
 
 const dispatcherBlock = codeGs.slice(codeGs.indexOf('function doPost(e)'), codeGs.indexOf('function jsonResponse_'));
@@ -138,7 +139,8 @@ function requestForAction(action) {
     saveConfirmation: { payload: actionContracts[action][0] },
     getConfirmation: { orderId: actionContracts[action][0], editToken: actionContracts[action][1] },
     getJastiperDashboard: { sessionToken: actionContracts[action][0], searchText: actionContracts[action][1] },
-    getJastiperImageData: { sessionToken: actionContracts[action][0], driveFileUrl: actionContracts[action][1] }
+    getJastiperImageData: { sessionToken: actionContracts[action][0], driveFileUrl: actionContracts[action][1] },
+    deleteOrder: { sessionToken: actionContracts[action][0], orderId: actionContracts[action][1] }
   }[action];
 }
 
