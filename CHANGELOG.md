@@ -6,6 +6,8 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 
 ### Added
 
+- Nama pemilik rekening pada detail transfer Dashboard, dipetakan dari rekening aktif milik jastiper tanpa perubahan schema pesanan (`JST-034`).
+- Test kontrak lokal `tests/jst034_dashboard_detail_check.js` untuk format WhatsApp, pemetaan pemilik rekening, tenant isolation, render aman, penghapusan chip duplikat, dan sinkronisasi mirror Dashboard (`JST-034`).
 - Tombol hapus buyer (`× Hapus`) di Dashboard jastiper yang menghapus baris Google Sheets dan memindahkan foto barang serta bukti transfer di Google Drive ke Sampah (Trash) dengan tenant isolation server-side (`JST-033`).
 - Test suite kontrak dan eksekusi penghapusan `tests/jst033_delete_order_check.js` (`JST-033`).
 - Pengaturan daftar ekspedisi kustom per jastiper, opsi ekspedisi buyer dinamis, pilihan manual “Lainnya”, dan test kontrak lokal `tests/jst032_ekspedisi_detail_buyer_check.js` (`JST-032`).
@@ -38,6 +40,7 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 
 ### Changed
 
+- Detail Dashboard menambahkan nol awal pada nomor WhatsApp lokal yang tersimpan sebagai `8...` dan menghapus chip nama barang duplikat di atas kartu foto (`JST-034`).
 - Kartu Data Buyer Dashboard diringkas menjadi Nama, ID Order, dan Alamat; tombol Detail membuka data pesanan lengkap secara aksesibel (`JST-032`).
 - Root URL Pages `/` tanpa query kini langsung redirect ke `/login` tanpa memuat konfigurasi form buyer, sementara akses toko/edit buyer berbasis query `/?shop=...` tetap utuh (`JST-031`).
 - Navigasi auth login dan dashboard dialihkan ke URL bersih `/login` dan `/dashboard` pada seluruh mirror template frontend (`JST-031`).

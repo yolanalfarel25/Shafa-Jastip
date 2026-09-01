@@ -495,9 +495,13 @@ function getJastiperDashboard(sessionToken, searchText) {
 
   let today = 0;
   let withProof = 0;
+  const bankAccounts = parseBankAccounts_(user);
 
   let rows = values.map(row => {
     const obj = rowToObject_(ORDER_HEADERS, row);
+    const bankAccount = bankAccounts.find(acc =>
+      bankAccountValue_(acc) === String(obj.bankTujuan || '') || acc.bankName === String(obj.bankTujuan || '')
+    );
     const createdDate = obj.createdAt instanceof Date ? obj.createdAt : new Date(obj.createdAt);
     if (!isNaN(createdDate) && Utilities.formatDate(createdDate, tz, 'yyyy-MM-dd') === todayKey) today++;
     if (obj.buktiTransferUrl) withProof++;
@@ -508,9 +512,10 @@ function getJastiperDashboard(sessionToken, searchText) {
       updatedAt: formatDate_(obj.updatedAt),
       namaLengkap: obj.namaLengkap || '',
       alamat: obj.alamat || '',
-      noHp: obj.noHp || '',
+      noHp: formatWhatsApp_(obj.noHp),
       ekspedisi: obj.ekspedisi || '',
       bankTujuan: obj.bankTujuan || '',
+      accountHolder: bankAccount ? bankAccount.accountHolder : '',
       items: safeJsonParse_(obj.itemsJson, []),
       buktiTransferUrl: obj.buktiTransferUrl || ''
     };
@@ -1001,6 +1006,11 @@ function safeJsonParse_(value, fallback) {
 
 function clean_(value, maxLen) {
   return String(value || '').trim().slice(0, maxLen || 5000);
+}
+
+function formatWhatsApp_(value) {
+  const phone = String(value || '').trim();
+  return /^8\d{7,}$/.test(phone) ? '0' + phone : phone;
 }
 
 function safeFileName_(value) {

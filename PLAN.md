@@ -2759,3 +2759,79 @@ Revert perubahan commit JST-033. Data yang terlanjur di-trash di Drive dapat dip
 
 Fitur hapus buyer telah terintegrasi di backend `Code.gs` dan frontend Dashboard (3 file mirror). Operasi memindahkan foto barang dan bukti transfer ke Google Drive Trash serta menghapus baris pesanan dari Sheet dengan aman.
 
+
+
+---
+
+## JST-034 — Perbaikan detail Dashboard buyer
+
+- **Status:** `DONE`
+- **Jenis:** `feat`
+- **Pemilik:** agen fitur
+- **Dibuat:** 2026-09-01
+- **Approval:** perpindahan Act Mode oleh pengguna (Master) pada 2026-09-01.
+- **Baseline:** `1fed0e6a9c950f0d9a56eb3f8885371c1a2e5073`
+
+### Tujuan
+
+Memperbaiki detail Dashboard agar nomor WhatsApp yang tersimpan tanpa nol awal tampil dengan format lokal, nama pemilik rekening tampil bersama rekening transfer, dan daftar nama barang duplikat di atas foto dihapus.
+
+### Acceptance criteria
+
+- [x] Nomor `8123456789` tampil sebagai `08123456789` dan nomor `08123456789` tidak mendapat nol tambahan.
+- [x] Format nonlokal seperti `+628123456789` tidak diubah.
+- [x] Nama pemilik rekening dikembalikan dari rekening jastiper yang cocok dengan `bankTujuan`.
+- [x] Order lama dengan rekening yang sudah tidak cocok tetap tampil tanpa nama pemilik.
+- [x] Daftar chip nama barang di atas foto tidak dirender; label kartu foto dan lightbox tetap berfungsi.
+- [x] Tiga mirror Dashboard identik.
+- [x] Tidak ada perubahan schema Sheet, auth, sesi, Drive, permission, OAuth, atau dependency.
+- [x] Test target dan seluruh suite lokal lulus.
+
+### Ruang lingkup
+
+- `04_Backend_GAS/Code.gs`
+- `04_Backend_GAS/Dashboard.html`
+- `02_Dashboard_Jastiper/Dashboard.html`
+- `dashboard.html`
+- `tests/jst034_dashboard_detail_check.js`
+- `PLAN.md`
+- `CHANGELOG.md`
+
+### Di luar ruang lingkup
+
+- Migrasi data nomor WhatsApp lama.
+- Perubahan form buyer atau schema Google Sheet.
+- Deployment GAS/staging/produksi dan modifikasi Script Properties.
+- Commit atau push sebelum konfirmasi akhir Master.
+
+### Risiko dan mitigasi
+
+- Nama pemilik rekening tidak tersimpan pada order. Backend hanya mencocokkan `bankTujuan` dengan rekening aktif milik jastiper; rekening yang sudah dihapus/diubah menghasilkan nama kosong tanpa merusak order lama.
+- Data buyer tetap dibatasi oleh `requireSession_` dan filter `jastiperId` yang sudah ada.
+- Semua data dinamis Dashboard tetap melewati `esc()` sebelum masuk HTML.
+
+### Rencana validasi
+
+1. Jalankan `node tests/jst034_dashboard_detail_check.js`.
+2. Jalankan test foto/lightbox dan kontrak API terkait.
+3. Jalankan seluruh `tests/*.js`.
+4. Verifikasi tiga mirror Dashboard byte-identical dan parse JavaScript template.
+5. Jalankan `git diff --check`, review diff, dan pindai rahasia/data pribadi.
+
+### Rencana rollback
+
+Revert perubahan JST-034. Tidak ada migrasi data, perubahan schema, atau operasi resource produksi.
+
+### Hasil validasi
+
+1. `node tests/jst034_dashboard_detail_check.js`: lulus.
+2. Seluruh 16 test `tests/*.js` (`JST-016` s.d. `JST-034` yang tersedia): lulus.
+3. SHA-256 ketiga mirror Dashboard: `23b46d1f4fc75e801d700fc39ab3adf6a08fb32f65bb8b499d7e9fdea4cf4521`; byte-identical.
+4. `git diff --check`: lulus tanpa whitespace error.
+5. Review keamanan/data: `getJastiperDashboard` tetap memakai `requireSession_` dan filter `jastiperId`; nama pemilik rekening berasal dari profil jastiper terautentikasi; seluruh output dinamis tetap melewati `esc()`; tidak ada auth, sesi, token, upload, scope OAuth, permission, schema, dependency, rahasia, atau data produksi baru.
+6. Validasi staging/browser nyata: tidak dijalankan karena deployment dan resource produksi di luar scope approval.
+
+### Catatan penutupan
+
+`formatWhatsApp_` hanya mengubah tampilan respons Dashboard, bukan data Sheet. `accountHolder` dicocokkan saat baca terhadap rekening aktif; order lama dengan rekening yang tidak lagi tersedia tetap tampil dengan nama pemilik kosong. Chip barang dihapus, sedangkan kartu foto, label foto, lazy loading, dan lightbox tetap dipertahankan. Rollback cukup revert diff JST-034.
+
