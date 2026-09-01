@@ -6,6 +6,7 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 
 ### Added
 
+- Test kontrak lokal `tests/jst035_remember_password_check.js` untuk alur password manager browser, fallback API, larangan penyimpanan plaintext, syntax, dan sinkronisasi mirror Login (`JST-035`).
 - Nama pemilik rekening pada detail transfer Dashboard, dipetakan dari rekening aktif milik jastiper tanpa perubahan schema pesanan (`JST-034`).
 - Test kontrak lokal `tests/jst034_dashboard_detail_check.js` untuk format WhatsApp, pemetaan pemilik rekening, tenant isolation, render aman, penghapusan chip duplikat, dan sinkronisasi mirror Dashboard (`JST-034`).
 - Tombol hapus buyer (`× Hapus`) di Dashboard jastiper yang menghapus baris Google Sheets dan memindahkan foto barang serta bukti transfer di Google Drive ke Sampah (Trash) dengan tenant isolation server-side (`JST-033`).
@@ -32,6 +33,7 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 
 ### Security
 
+- Penyimpanan password login didelegasikan ke Credential Management API setelah autentikasi sukses; aplikasi tidak menyimpan password pada Web Storage, cookie, backend, atau log (`JST-035`).
 - Validasi server ekspedisi kustom dan manual membatasi panjang/jumlah, menolak duplikat/nama cadangan, serta mencegah formula injection Google Sheets (`JST-032`).
 - Approval gate untuk auth, token, upload, OAuth, data produksi, permission, dan deployment.
 - Daftar risiko awal auth, upload, tenant isolation, race condition, clickjacking, dan retensi data.
@@ -40,7 +42,9 @@ Semua perubahan penting dicatat di sini. Format mengikuti prinsip [Keep a Change
 
 ### Changed
 
+- Checkbox login menjadi `Ingat email & Password`: email tetap memakai `jastip-email`, sedangkan password ditawarkan ke password manager browser setelah login sukses dengan fallback `autocomplete="current-password"` (`JST-035`).
 - Detail Dashboard menambahkan nol awal pada nomor WhatsApp lokal yang tersimpan sebagai `8...` dan menghapus chip nama barang duplikat di atas kartu foto (`JST-034`).
+- Backend Dashboard JST-034 dideploy ke GAS versi immutable `@18`; deployment aktif diperbarui setelah source Pages dipublikasikan.
 - Kartu Data Buyer Dashboard diringkas menjadi Nama, ID Order, dan Alamat; tombol Detail membuka data pesanan lengkap secara aksesibel (`JST-032`).
 - Root URL Pages `/` tanpa query kini langsung redirect ke `/login` tanpa memuat konfigurasi form buyer, sementara akses toko/edit buyer berbasis query `/?shop=...` tetap utuh (`JST-031`).
 - Navigasi auth login dan dashboard dialihkan ke URL bersih `/login` dan `/dashboard` pada seluruh mirror template frontend (`JST-031`).

@@ -56,7 +56,7 @@
         <form id="loginForm" autocomplete="on">
           <label class="field"><span>Email terdaftar</span><div class="input"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.6-4 2.7-6 6.5-6s5.9 2 6.5 6"/></svg><input id="loginId" name="username" type="email" autocomplete="username" placeholder="nama@email.com" required></div></label>
           <label class="field"><span>Password</span><div class="input"><svg viewBox="0 0 24 24"><rect x="4.5" y="10" width="15" height="10" rx="2.5"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/></svg><input id="loginPassword" name="password" type="password" autocomplete="current-password" minlength="8" placeholder="Masukkan password" required><button class="eye" type="button" data-target="loginPassword" aria-label="Tampilkan password"><svg viewBox="0 0 24 24"><path d="M3 12s3.6-5.7 9-5.7 9 5.7 9 5.7-3.6 5.7-9 5.7S3 12 3 12z"/><circle cx="12" cy="12" r="2.5"/></svg></button></div></label>
-          <div class="options"><label class="remember" title="Ingat email di perangkat ini"><input id="remember" type="checkbox"><span class="check"></span>Ingat email</label><button class="forgot" id="forgotBtn" type="button">Lupa password?</button></div>
+          <div class="options"><label class="remember" title="Ingat email dan password di password manager browser"><input id="remember" type="checkbox"><span class="check"></span>Ingat email &amp; Password</label><button class="forgot" id="forgotBtn" type="button">Lupa password?</button></div>
           <button id="loginSubmitBtn" class="primary" type="submit">Masuk ke Dashboard <svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></button>
         </form>
 
@@ -126,6 +126,15 @@
       btn.setAttribute('aria-label',input.type==='password'?'Tampilkan password':'Sembunyikan password');
     });
 
+    async function rememberPassword(email,password){
+      if(!$('#remember').checked||!window.PasswordCredential||!navigator.credentials?.store)return;
+      try{
+        await navigator.credentials.store(new PasswordCredential({id:email,password}));
+      }catch(_){
+        // Password manager failure must not block successful login.
+      }
+    }
+
     const savedEmail=localStorage.getItem('jastip-email');
     if(savedEmail){
       $('#loginId').value=savedEmail;
@@ -187,7 +196,9 @@
       busy(btn,true,'Masuk ke Dashboard…');
 
       try{
-        authSuccess(await callApi('loginJastiper',{email,password:pw}));
+        const res=await callApi('loginJastiper',{email,password:pw});
+        await rememberPassword(email,pw);
+        authSuccess(res);
       }catch(err){
         busy(btn,false,'Masuk ke Dashboard');
         showNotice(err.message||String(err),true);

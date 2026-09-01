@@ -2769,7 +2769,7 @@ Fitur hapus buyer telah terintegrasi di backend `Code.gs` dan frontend Dashboard
 - **Jenis:** `feat`
 - **Pemilik:** agen fitur
 - **Dibuat:** 2026-09-01
-- **Approval:** perpindahan Act Mode oleh pengguna (Master) pada 2026-09-01.
+- **Approval:** perpindahan Act Mode oleh pengguna (Master) pada 2026-09-01; approval deployment GAS oleh Master pada 2026-09-01.
 - **Baseline:** `1fed0e6a9c950f0d9a56eb3f8885371c1a2e5073`
 
 ### Tujuan
@@ -2829,9 +2829,90 @@ Revert perubahan JST-034. Tidak ada migrasi data, perubahan schema, atau operasi
 3. SHA-256 ketiga mirror Dashboard: `23b46d1f4fc75e801d700fc39ab3adf6a08fb32f65bb8b499d7e9fdea4cf4521`; byte-identical.
 4. `git diff --check`: lulus tanpa whitespace error.
 5. Review keamanan/data: `getJastiperDashboard` tetap memakai `requireSession_` dan filter `jastiperId`; nama pemilik rekening berasal dari profil jastiper terautentikasi; seluruh output dinamis tetap melewati `esc()`; tidak ada auth, sesi, token, upload, scope OAuth, permission, schema, dependency, rahasia, atau data produksi baru.
-6. Validasi staging/browser nyata: tidak dijalankan karena deployment dan resource produksi di luar scope approval.
+6. Deployment backend GAS: `clasp push` mengunggah 5 file terlacak; versi immutable `@18` dibuat; deployment aktif JST-028 diarahkan dari `@17` ke `@18` dengan approval Master.
+7. Smoke test backend live: GET Dashboard HTTP `200`; action invalid ditolak JSON; endpoint `getJastiperDashboard` tanpa sesi ditolak.
+8. Verifikasi Pages live: HTTP `200`; renderer `accountHolder` tersedia dan chip duplikat tidak ada. Data terautentikasi tidak dipakai pada smoke test karena token dan data buyer tidak boleh dicatat.
 
 ### Catatan penutupan
 
-`formatWhatsApp_` hanya mengubah tampilan respons Dashboard, bukan data Sheet. `accountHolder` dicocokkan saat baca terhadap rekening aktif; order lama dengan rekening yang tidak lagi tersedia tetap tampil dengan nama pemilik kosong. Chip barang dihapus, sedangkan kartu foto, label foto, lazy loading, dan lightbox tetap dipertahankan. Rollback cukup revert diff JST-034.
+`formatWhatsApp_` hanya mengubah tampilan respons Dashboard, bukan data Sheet. `accountHolder` dicocokkan saat baca terhadap rekening aktif; order lama dengan rekening yang tidak lagi tersedia tetap tampil dengan nama pemilik kosong. Chip barang dihapus, sedangkan kartu foto, label foto, lazy loading, dan lightbox tetap dipertahankan. Rollback backend cukup arahkan deployment aktif kembali ke versi immutable `@17`; rollback source Pages cukup revert commit JST-034.
+
+
+
+---
+
+## JST-035 — Ingat Email dan Password Login
+
+- **Status:** `DONE`
+- **Jenis:** `feat`
+- **Pemilik:** agen fitur
+- **Dibuat:** 2026-09-01
+- **Selesai:** 2026-09-01
+- **Approval:** perpindahan Act Mode oleh pengguna (Master) pada 2026-09-01.
+- **Baseline:** `ff4df19`
+
+### Tujuan
+
+Mengubah satu checkbox login menjadi `Ingat email & Password`: email tetap disimpan pada browser seperti perilaku lama, sedangkan password ditawarkan ke password manager browser setelah autentikasi berhasil tanpa disimpan aplikasi sebagai plaintext.
+
+### Acceptance criteria
+
+- [x] Satu checkbox `#remember` menampilkan label `Ingat email & Password`.
+- [x] Saat dicentang, email disimpan pada `localStorage` dan password ditawarkan ke Credential Management API hanya setelah login berhasil.
+- [x] Saat tidak dicentang, email tersimpan dihapus dan aplikasi tidak meminta credential manager menyimpan password.
+- [x] Kegagalan atau ketiadaan Credential Management API tidak menggagalkan login.
+- [x] Password tidak disimpan pada `localStorage`, `sessionStorage`, cookie aplikasi, Sheet, Git, atau log.
+- [x] `autocomplete="current-password"` tetap tersedia sebagai fallback password manager native.
+- [x] Tiga mirror Login byte-identical.
+- [x] Backend, schema, sesi, hashing, OAuth, dependency, dan deployment tidak berubah.
+- [x] Test target dan seluruh suite lokal lulus.
+
+### Ruang lingkup
+
+- `01_Login_Signup/Login.html`
+- `04_Backend_GAS/Login.html`
+- `login.html`
+- `tests/jst035_remember_password_check.js`
+- `PLAN.md`
+- `CHANGELOG.md`
+
+### Di luar ruang lingkup
+
+- Perubahan `04_Backend_GAS/Code.gs`, autentikasi server, hashing password, sesi, token, atau reset password.
+- Penyimpanan password oleh aplikasi atau backend.
+- Perubahan schema Sheet, Script Properties, OAuth, permission, dan dependency.
+- Deployment GAS/GitHub Pages, operasi data/resource produksi, commit, atau push.
+
+### Risiko keamanan/data
+
+- Menyimpan password di Web Storage atau cookie aplikasi akan mengekspos plaintext terhadap script origin; mitigasi wajib memakai password manager browser dan tidak membuat storage key password.
+- `PasswordCredential` tidak didukung semua browser serta dibatasi HTTPS/top-level context; `autocomplete="current-password"` tetap menjadi fallback dan kegagalan API tidak memblokir login.
+- Menonaktifkan checkbox tidak menghapus credential yang sebelumnya disimpan pengguna pada password manager; penghapusan tetap dikendalikan pengguna melalui pengaturan browser.
+
+### Rencana validasi
+
+1. Jalankan `node tests/jst035_remember_password_check.js`.
+2. Jalankan seluruh `tests/*.js`.
+3. Parse JavaScript tiga template Login dan verifikasi mirror byte-identical.
+4. Jalankan `git diff --check`, review diff/file tak terduga, dan pindai password/storage/log/rahasia/data pribadi.
+5. Catat hasil, ubah status menjadi `DONE`, dan sinkronkan `CHANGELOG.md` bila semua acceptance criteria terpenuhi.
+
+### Rencana rollback
+
+Revert perubahan JST-035 pada tiga mirror Login, test, dan dokumentasi. Tidak ada migrasi data atau resource server yang perlu dipulihkan. Credential yang telah disimpan oleh password manager browser tetap dikelola pengguna dari pengaturan browser.
+
+### Hasil validasi
+
+1. Red test sebelum implementasi: gagal pada label lama `Ingat email`, sesuai ekspektasi.
+2. `node tests/jst035_remember_password_check.js`: lulus; mencakup checkbox aktif/nonaktif, urutan setelah autentikasi sukses, penolakan `store()`, API tidak tersedia, fallback autocomplete, larangan Web Storage/cookie password, syntax, dan sinkronisasi mirror.
+3. Seluruh 17 test `tests/*.js` yang tersedia: lulus (`SUITE_RESULT=PASS tests=17 failed=0`).
+4. Parse JavaScript ketiga template Login dengan `vm.Script`: lulus.
+5. SHA-256 ketiga mirror Login: `a5c042b8263cae25855cc504db8062cc1da1b0d4567177cc345a486a7b03fe8e`; byte-identical.
+6. `git diff --check`: lulus tanpa whitespace error.
+7. Review keamanan: password hanya diteruskan dari input login ke backend existing dan `PasswordCredential` setelah autentikasi sukses saat checkbox aktif; kegagalan API ditangkap; tidak ada password baru pada `localStorage`, `sessionStorage`, cookie, log, Git, atau backend. Tidak ada temuan keamanan high-confidence.
+8. Review scope: backend, schema, sesi, hashing, token, OAuth, permission, dependency, dan deployment tidak berubah. Perubahan lokal JST-034 yang sudah ada pada `PLAN.md` dan `CHANGELOG.md` dipertahankan.
+
+### Catatan penutupan
+
+Checkbox tidak dapat menghapus credential yang sebelumnya disimpan browser; pengguna mengelolanya melalui pengaturan password manager browser. Browser tanpa Credential Management API tetap memakai `autocomplete="current-password"`. Validasi browser nyata dan deployment tidak dijalankan karena berada di luar scope approval.
 
